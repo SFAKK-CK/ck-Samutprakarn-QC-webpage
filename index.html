@@ -469,6 +469,79 @@
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.5);
   }
+
+  /* Today's Activity summary card */
+  .daily-summary {
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--r-lg);
+    padding: 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    text-align: center;
+    box-shadow: 0 8px 24px -12px rgba(50,60,80,0.18), 0 1px 0 rgba(255,255,255,0.7) inset;
+    margin-top: 4px;
+    animation: cardIn var(--t-slow) cubic-bezier(.22,1,.36,1) both;
+    animation-delay: 300ms;
+  }
+  .summary-cell { flex: 1; min-width: 0; padding: 4px 0; }
+  .summary-num {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink);
+    line-height: 1;
+    transition: opacity var(--t-med);
+  }
+  .summary-num.loading { opacity: .4; }
+  .summary-label {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 5px;
+    font-weight: 500;
+  }
+  .summary-divider {
+    width: 1px;
+    align-self: stretch;
+    background: rgba(40,42,50,0.1);
+    flex-shrink: 0;
+    margin: 4px 0;
+  }
+
+
+  /* Container slots — bump opacity so they read clearly over the aurora gradient */
+  .container-slot {
+    background: rgba(255, 255, 255, 0.78) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+    box-shadow: 0 4px 14px -6px rgba(50, 60, 80, 0.15);
+  }
+  .container-slot.saved {
+    background: linear-gradient(0deg, rgba(219, 233, 213, 0.7), rgba(255,255,255,0.85) 60%) !important;
+    border-color: rgba(46, 107, 60, 0.3) !important;
+  }
+  .container-slot.preview {
+    background: rgba(223, 233, 243, 0.7) !important;
+    border-color: rgba(45, 90, 135, 0.45) !important;
+  }
+  .container-slot.saving {
+    background: rgba(245, 233, 212, 0.75) !important;
+    border-color: var(--amber) !important;
+  }
+  .container-slot.failed {
+    background: rgba(243, 218, 218, 0.75) !important;
+    border-color: var(--red) !important;
+  }
+  /* Required marker — small red star inline with labels */
+  .req-star {
+    color: var(--red);
+    font-weight: 700;
+    margin-left: 2px;
+  }
+
 </style>
 </head>
 <body class="lang-th">
@@ -577,6 +650,24 @@
           <h1 id="step12Title">Step 1 · Packing</h1>
           <p id="step12Sub"><span class="th">ถ่ายรูปสินค้าและฉลาก</span><span class="en">Capture product & label photos</span></p>
         </div>
+        <div class="section-label" style="margin-top:28px"><span class="th">วันนี้</span><span class="en">Today's activity</span></div>
+        <div class="daily-summary" id="dailySummary">
+          <div class="summary-cell">
+            <div class="summary-num loading" id="statPacked">—</div>
+            <div class="summary-label"><span class="th">บรรจุ</span><span class="en">Packed</span></div>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-cell">
+            <div class="summary-num loading" id="statQcd">—</div>
+            <div class="summary-label"><span class="th">QC แล้ว</span><span class="en">QC'd</span></div>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-cell">
+            <div class="summary-num loading" id="statContainers">—</div>
+            <div class="summary-label"><span class="th">ตู้เสร็จ</span><span class="en">Containers</span></div>
+          </div>
+        </div>
+
         <div class="topbar-actions">
           <span class="net-dot online" id="netStep12">Online</span>
           <div class="lang-tab">
@@ -995,6 +1086,7 @@
       setTimeout(() => { current.classList.add('hidden'); current.classList.remove('exiting'); }, 380);
     }
     setTimeout(() => { next.classList.remove('hidden','exiting'); }, 30);
+    if (id === 'screen-stepSelect') loadDailyStats();
   }
   function signOut(){
     state.staffId = null; state.staffName = ''; state.staffDept = '';
@@ -1337,7 +1429,7 @@
       slot.id = 'p12slot' + (i+1);
       slot.onclick = () => triggerCapture12(i+1);
       slot.innerHTML =
-        '<div class="slot-num">' + String(i+1).padStart(2,'0') + (lab.req?'':' OPT') + '</div>' +
+        '<div class="slot-num">' + String(i+1).padStart(2,'0') + (lab.req?' <span class="req-star">*</span>':' OPT') + '</div>' +
         '<div class="slot-cam">📷</div>' +
         '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>';
       grid.appendChild(slot);
@@ -1441,7 +1533,7 @@
     slot.className = 'photo-slot' + (lab.req && !(state.isIMLayout && (num===4||num===6)) ? '' : ' optional');
     if (state.isIMLayout && (num===4||num===6)) slot.classList.add('hidden-slot');
     slot.innerHTML =
-      '<div class="slot-num">' + String(num).padStart(2,'0') + (lab.req?'':' OPT') + '</div>' +
+      '<div class="slot-num">' + String(num).padStart(2,'0') + (lab.req?' <span class="req-star">*</span>':' OPT') + '</div>' +
       '<div class="slot-cam">📷</div>' +
       '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>';
     slot.onclick = () => triggerCapture12(num);
@@ -1582,6 +1674,15 @@
     loadContainerPhotos();
     setupTabs();
     updateLinesRing(state.step3Order.lines.length, 30);
+    // Auto-select the first un-saved line so the dropdown shows it instead of placeholder
+    const _doneLines = state.step3Order.lines.map(l => parseInt(l.lineNumber));
+    for (let _i = 1; _i <= 30; _i++) {
+      if (_doneLines.indexOf(_i) < 0) {
+        document.getElementById('step3LineValueLabel').textContent = 'Line-' + _i;
+        document.getElementById('step3LineValueLabel').classList.remove('placeholder');
+        break;
+      }
+    }
   }
   function goBackStep3(){
     if (document.getElementById('step3-tabs').style.display !== 'none') {
@@ -1645,7 +1746,7 @@
       slot.id = 'p3slot' + i;
       slot.onclick = () => triggerCaptureLine(i);
       slot.innerHTML =
-        '<div class="slot-num">' + (i===0?'01':('0'+(i+1)+' OPT')) + '</div>' +
+        '<div class="slot-num">' + (i===0?'01 <span class="req-star">*</span>':('0'+(i+1)+' OPT')) + '</div>' +
         '<div class="slot-cam">📷</div>' +
         '<div class="slot-label">' + (i===0?'<span class="th">บังคับ</span><span class="en">Required</span>':'<span class="th">ไม่บังคับ</span><span class="en">Optional</span>') + '</div>';
       grid.appendChild(slot);
@@ -1731,13 +1832,32 @@
   const CONTAINER_LABELS_EN = ['Empty container','Temp before opening','Temp middle','Temp rear','Seal number','Container closed'];
 
   function loadContainerPhotos(){
+    // Build placeholder slots immediately so the grid is never empty.
+    buildContainerGrid(new Array(6).fill(''));
     apiCall('getContainerPhotos', { orderName: state.step3Order.name })
       .then(result => {
-        const photos = (result && result.photos) || new Array(6).fill('');
+        if (result && result._error) {
+          console.warn('getContainerPhotos returned error:', result.message);
+          showStatusMsg('containerStatus', state.lang==='th'
+            ? '⚠ ดึงรูปตู้สินค้าไม่ได้: ' + result.message
+            : '⚠ Could not load container photos: ' + result.message, 'error');
+          return; // Keep the empty placeholder grid
+        }
+        const photos = (result && Array.isArray(result.photos)) ? result.photos : new Array(6).fill('');
+        // Defensive: ensure exactly 6 elements
+        while (photos.length < 6) photos.push('');
         state.containerSaved = (result && result.savedCount) || 0;
         buildContainerGrid(photos);
+        console.log('loadContainerPhotos: rebuilt with', state.containerSaved, '/6 saved');
       })
-      .catch(() => { state.containerSaved = 0; buildContainerGrid(new Array(6).fill('')); });
+      .catch(err => {
+        console.warn('loadContainerPhotos failed:', err);
+        state.containerSaved = 0;
+        buildContainerGrid(new Array(6).fill(''));
+        showStatusMsg('containerStatus', state.lang==='th'
+          ? '⚠ โหลดรูปตู้ไม่สำเร็จ: ' + err.message
+          : '⚠ Failed to load container photos: ' + err.message, 'error');
+      });
   }
   function buildContainerGrid(photos){
     const grid = document.getElementById('step3ContainerGrid');
@@ -1755,7 +1875,7 @@
       slot.innerHTML =
         '<div class="container-slot-head">' +
           '<div class="container-slot-num">' + (i+1) + '</div>' +
-          '<div class="container-slot-name"><span class="th">'+CONTAINER_LABELS_TH[i]+'</span><span class="en">'+CONTAINER_LABELS_EN[i]+'</span></div>' +
+          '<div class="container-slot-name"><span class="th">'+CONTAINER_LABELS_TH[i]+'</span><span class="en">'+CONTAINER_LABELS_EN[i]+'</span> <span class="req-star">*</span></div>' +
           '<div class="container-slot-status">' + (isSaved?'✓':'⬜') + '</div>' +
           (isSaved ? '<button class="gm-mini" onclick="showGMContainerModal('+i+')">✏️</button>' : '') +
         '</div>' +
@@ -2045,6 +2165,35 @@
     t.className = 'toast show ' + (kind || '');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+
+  // ===== TODAY'S ACTIVITY =====
+  function loadDailyStats() {
+    const setVal = (id, v) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = v;
+      el.classList.remove('loading');
+    };
+    apiCall('getDailyStats', {})
+      .then(stats => {
+        if (!stats || stats._error) {
+          setVal('statPacked', '—');
+          setVal('statQcd', '—');
+          setVal('statContainers', '—');
+          return;
+        }
+        setVal('statPacked', stats.packed != null ? stats.packed : 0);
+        setVal('statQcd', stats.qcd != null ? stats.qcd : 0);
+        setVal('statContainers', stats.containers != null ? stats.containers : 0);
+      })
+      .catch(() => {
+        ['statPacked','statQcd','statContainers'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.textContent = '—'; el.classList.remove('loading'); }
+        });
+      });
   }
 
   // ============ INIT ============
