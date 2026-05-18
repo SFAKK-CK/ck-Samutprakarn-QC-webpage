@@ -314,9 +314,164 @@
   .gallery-dots .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);transition:background var(--t-fast),transform var(--t-fast)}
   .gallery-dots .dot.active{background:#fff;transform:scale(1.3)}
   .divider{height:1px;background:var(--line);margin:18px 0;border:none}
+
+  /* ===== iOS-STYLE GLASS AESTHETIC (Factory 2) ===== */
+  /* Aurora gradient body background */
+  body.lang-th, body.lang-en, body {
+    background:
+      radial-gradient(at 22% 18%, rgba(255, 200, 220, 0.55) 0%, transparent 45%),
+      radial-gradient(at 78% 12%, rgba(190, 220, 255, 0.6) 0%, transparent 50%),
+      radial-gradient(at 88% 78%, rgba(210, 230, 200, 0.5) 0%, transparent 50%),
+      radial-gradient(at 12% 88%, rgba(255, 230, 200, 0.55) 0%, transparent 50%),
+      linear-gradient(135deg, #f3eef6 0%, #eef4f8 50%, #f4eff3 100%);
+    background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+    animation: auroraDrift 22s ease-in-out infinite;
+  }
+  @keyframes auroraDrift {
+    0%, 100% { background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%; }
+    50%      { background-position: 30% 30%, 70% 30%, 70% 70%, 30% 70%, 0% 0%; }
+  }
+
+  .app {
+    background: transparent;
+  }
+  .phone {
+    background: transparent;
+    box-shadow: 0 30px 90px -30px rgba(40, 40, 60, 0.22), 0 8px 20px -8px rgba(40, 40, 60, 0.1);
+  }
+  @media (min-width: 700px) {
+    .phone {
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+  }
+  .screen { background: transparent; }
+
+  /* Frosted surfaces */
+  .topbar, .greeting-band, .step-card, .container-slot, .modal-card, .actionbar, .step3-summary, .tabs {
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+  .topbar { border-bottom: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset; }
+  .greeting-band { border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
+  .actionbar { border-top: 1px solid rgba(255, 255, 255, 0.55); }
+  .tabs { border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
+
+  .step-card {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 24px -12px rgba(50, 60, 80, 0.18), 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  }
+  .step-card:hover {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+  .step-card .icon {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Inputs glassy */
+  .text-input, textarea.text-input {
+    background: rgba(255, 255, 255, 0.65);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+  .text-input:focus {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: var(--accent);
+  }
+  .icon-btn {
+    background: rgba(255, 255, 255, 0.6);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+  .select-trigger {
+    background: rgba(255, 255, 255, 0.6);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+  .select-menu {
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  /* Photo slots */
+  .photo-slot {
+    background: rgba(255, 255, 255, 0.45);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+  .photo-slot:hover {
+    background: rgba(220, 232, 244, 0.6);
+  }
+
+  /* Container slot tweaks */
+  .container-slot-head {
+    background: rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  }
+  .container-slot.empty .container-slot-body button {
+    background: rgba(255, 255, 255, 0.4);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Modal scrim a touch more frosted */
+  .modal-overlay { background: rgba(40, 42, 50, 0.45); }
+  .modal-card {
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    backdrop-filter: blur(40px) saturate(180%);
+  }
+
+  /* Item / order pill — keep solid for contrast */
+  .order-pill {
+    box-shadow: 0 6px 20px -8px rgba(20, 22, 18, 0.4);
+  }
+
+  /* Login brand mark — now a frosted glass square containing the waving hand */
+  .brand-mark {
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    color: inherit;
+    font-size: 38px;
+    box-shadow: 0 10px 30px -10px rgba(60, 80, 120, 0.25), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  }
+
+  /* Waving hand animation */
+  .wave-hand {
+    display: inline-block;
+    transform-origin: 70% 70%;
+    animation: waveHand 2.4s ease-in-out infinite;
+  }
+  @keyframes waveHand {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    10%, 30%      { transform: rotate(14deg); }
+    20%           { transform: rotate(-8deg); }
+    40%           { transform: rotate(-4deg); }
+    50%           { transform: rotate(10deg); }
+  }
+
+  /* Gallery dropdown chip (recent orders) glassy */
+  .chip.recent, .chip.empty-state {
+    background: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
 </style>
 </head>
-<body class="lang-en">
+<body class="lang-th">
 
 <button class="emergency-close" id="emergencyClose" onclick="closeAllPreviews()" aria-label="Close">✕</button>
 
@@ -331,7 +486,7 @@
         <div></div>
         <div>
           <div class="login-hero">
-            <div class="brand-mark">🐟</div>
+            <div class="brand-mark"><span class="wave-hand">👋</span></div>
             <div class="brand-name">CK Frozen Fish · Samut Prakarn</div>
             <h1 class="login-greeting"><span class="th">ยินดีต้อนรับ</span><span class="en">Welcome</span></h1>
             <p class="login-sub"><span class="th">กรอกรหัสพนักงาน 7 หลัก</span><span class="en">Enter your 7-digit Staff ID</span></p>
@@ -351,8 +506,8 @@
       <div style="padding:10px 18px;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:space-between">
         <span class="net-dot online" id="netLogin">Online</span>
         <div class="lang-tab">
-          <button onclick="setLang('th')" data-l="th">TH</button>
-          <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+          <button onclick="setLang('th')" data-l="th" class="active">TH</button>
+          <button onclick="setLang('en')" data-l="en">EN</button>
         </div>
       </div>
     </div>
@@ -375,8 +530,8 @@
         <div class="topbar-actions">
           <span class="net-dot online" id="netSelect">Online</span>
           <div class="lang-tab">
-            <button onclick="setLang('th')" data-l="th">TH</button>
-            <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+            <button onclick="setLang('th')" data-l="th" class="active">TH</button>
+            <button onclick="setLang('en')" data-l="en">EN</button>
           </div>
         </div>
       </div>
@@ -425,8 +580,8 @@
         <div class="topbar-actions">
           <span class="net-dot online" id="netStep12">Online</span>
           <div class="lang-tab">
-            <button onclick="setLang('th')" data-l="th">TH</button>
-            <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+            <button onclick="setLang('th')" data-l="th" class="active">TH</button>
+            <button onclick="setLang('en')" data-l="en">EN</button>
           </div>
         </div>
       </div>
@@ -549,8 +704,8 @@
         <div class="topbar-actions">
           <span class="net-dot online" id="netStep3">Online</span>
           <div class="lang-tab">
-            <button onclick="setLang('th')" data-l="th">TH</button>
-            <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+            <button onclick="setLang('th')" data-l="th" class="active">TH</button>
+            <button onclick="setLang('en')" data-l="en">EN</button>
           </div>
         </div>
       </div>
@@ -801,7 +956,7 @@
 
   // ============ STATE ============
   const state = {
-    lang: 'en',
+    lang: 'th',
     staffId: null, staffName: '', staffDept: '',
     config: { productTypes: [], processingTypes: [], sizes: [] },
     step12Type: 1,
