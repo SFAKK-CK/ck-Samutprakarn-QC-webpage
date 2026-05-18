@@ -304,6 +304,15 @@
   .spinner-dark{border-color:rgba(0,0,0,.2);border-top-color:var(--ink)}
 
   .photo-input{display:none}
+  .gallery-arrow{position:fixed;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:28px;cursor:pointer;z-index:320;display:none;align-items:center;justify-content:center;line-height:1;font-weight:bold;-webkit-tap-highlight-color:transparent;transition:background var(--t-fast),transform var(--t-fast)}
+  .gallery-arrow.show{display:flex}
+  .gallery-arrow.left{left:14px}
+  .gallery-arrow.right{right:14px}
+  .gallery-arrow:hover{background:rgba(255,255,255,.25)}
+  .gallery-arrow:active{transform:translateY(-50%) scale(.94)}
+  .gallery-dots{position:fixed;bottom:96px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:315;pointer-events:none}
+  .gallery-dots .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);transition:background var(--t-fast),transform var(--t-fast)}
+  .gallery-dots .dot.active{background:#fff;transform:scale(1.3)}
   .divider{height:1px;background:var(--line);margin:18px 0;border:none}
 </style>
 </head>
@@ -703,6 +712,9 @@
     <div class="preview" id="previewModal">
       <div class="preview-label" id="previewLabel"></div>
       <img id="previewImg" alt="">
+      <button class="gallery-arrow left" id="galleryPrevBtn" onclick="galleryPrev()" aria-label="Previous">‹</button>
+      <button class="gallery-arrow right" id="galleryNextBtn" onclick="galleryNext()" aria-label="Next">›</button>
+      <div class="gallery-dots" id="galleryDots"></div>
       <div class="preview-bar">
         <button class="close-x" onclick="closePreview()"><span class="icon">✕</span><span><span class="th">ปิด</span><span class="en">Close</span></span></button>
         <button onclick="zoomBy(0.77)"><span class="icon">−</span><span><span class="th">ย่อ</span><span class="en">Out</span></span></button>
@@ -726,7 +738,7 @@
   // GitHub-hosted: change APPS_SCRIPT_URL after deploying Code.gs
   // ============================================================
 
-  const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxukeNmA-KyszYran8nErZiuUdjYj_cTYpQeCYnkC9rdszJHvRZD728VjWli97kTPqBBw/exec';
 
   function apiCall(action, params) {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
@@ -1724,24 +1736,19 @@
   function submitGMContainerUnlock(){
     const pw = document.getElementById('gmContainerPassword').value;
     const slot = state.gmContainerSlot;
-    apiCall('verifyGMPassword', { password: pw })
+    if (slot < 0) { closeGMContainerModal(); return; }
+    // Option A: explicit server-side clear. The sheet cell is emptied before
+    // returning so the slot is genuinely empty — subsequent save can write
+    // into it without tripping the concurrency-rejection check.
+    apiCall('clearContainerSlot', { orderName: state.step3Order.name, slotIndex: slot, password: pw })
       .then(result => {
-        if (result && result.valid && slot >= 0) {
+        if (result && result.success) {
           closeGMContainerModal();
-          const s = document.getElementById('cslot' + slot);
-          s.className = 'container-slot empty';
-          s.querySelector('.container-slot-status').textContent = '⬜';
-          s.querySelector('.container-slot-body').innerHTML = '<button onclick="triggerCaptureContainer('+slot+')">📷 <span class="th">แตะเพื่อถ่ายรูป</span><span class="en">Tap to take photo</span></button>';
-          // Recompute saved count
-          let saved = 0;
-          document.querySelectorAll('.container-slot.saved').forEach(() => saved++);
-          state.containerSaved = saved;
-          document.getElementById('containerBadge').textContent = saved + '/6';
-          document.getElementById('containerNum').textContent = saved + '/6';
-          updateContainerRing(saved);
-          document.getElementById('step3CompleteBtn').disabled = saved < 6;
+          // Reload container photos from server (single source of truth now)
+          loadContainerPhotos();
+          showToast(state.lang==='th'?'✓ ปลดล็อคเรียบร้อย — ถ่ายรูปใหม่ได้':'✓ Unlocked — ready to retake', 'success');
         } else {
-          showStatusMsg('gmContainerError', state.lang==='th'?'❌ รหัสผ่านไม่ถูกต้อง':'❌ Wrong password', 'error');
+          showStatusMsg('gmContainerError', (result && result.message) || (state.lang==='th'?'❌ รหัสผ่านไม่ถูกต้อง':'❌ Wrong password'), 'error');
         }
       })
       .catch(err => showStatusMsg('gmContainerError', '❌ ' + err.message, 'error'));
@@ -1783,30 +1790,89 @@
     requestAnimationFrame(() => updateIndicator(btns[0]));
   }
 
-  // ============ PHOTO PREVIEW ============
+  // ============ PHOTO PREVIEW + GALLERY ============
+  // openPreview() accepts either a single URL/dataURL or an array. When given
+  // an array, it shows prev/next arrows + dot indicators so an officer can
+  // navigate through (e.g.) all 3 photos on a Line. Zoom buttons apply to the
+  // currently visible photo. All 4 zoom buttons + the emergency close button
+  // work in every preview surface.
   let zoomScale = 1;
-  function openPreview(src, label){
-    document.getElementById('previewImg').src = src;
-    document.getElementById('previewLabel').textContent = label || '';
+  let galleryPhotos = [];
+  let galleryIndex = 0;
+  let galleryLabel = '';
+
+  function _toDisplayUrl(s) {
+    if (!s) return '';
+    if (s.indexOf('data:') === 0) return s;
+    if (/^https?:\/\//.test(s)) return toDriveThumb(s) || s;
+    return s;
+  }
+
+  function openPreview(srcOrArray, label) {
+    if (Array.isArray(srcOrArray)) {
+      galleryPhotos = srcOrArray.filter(Boolean).map(_toDisplayUrl);
+    } else {
+      galleryPhotos = [_toDisplayUrl(srcOrArray)];
+    }
+    galleryIndex = 0;
+    galleryLabel = label || '';
+    _renderGalleryFrame();
     document.getElementById('previewModal').classList.add('open');
-    zoomScale = 1; applyZoom();
     showEmergencyClose();
   }
-  function closePreview(){ document.getElementById('previewModal').classList.remove('open'); if (!isAnyPreviewOpen()) hideEmergencyClose(); }
-  function zoomBy(f){ zoomScale = Math.max(1, Math.min(6, zoomScale * f)); applyZoom(); }
-  function resetZoom(){ zoomScale = 1; applyZoom(); }
-  function applyZoom(){
+  function _renderGalleryFrame() {
+    zoomScale = 1; applyZoom();
+    document.getElementById('previewImg').src = galleryPhotos[galleryIndex] || '';
+    const counter = galleryPhotos.length > 1 ? ' · ' + (galleryIndex + 1) + '/' + galleryPhotos.length : '';
+    document.getElementById('previewLabel').textContent = galleryLabel + counter;
+    const showArrows = galleryPhotos.length > 1;
+    const prev = document.getElementById('galleryPrevBtn');
+    const next = document.getElementById('galleryNextBtn');
+    if (prev) prev.classList.toggle('show', showArrows);
+    if (next) next.classList.toggle('show', showArrows);
+    _renderGalleryDots();
+  }
+  function _renderGalleryDots() {
+    const dots = document.getElementById('galleryDots');
+    if (!dots) return;
+    if (galleryPhotos.length <= 1) { dots.innerHTML = ''; return; }
+    let html = '';
+    for (let i = 0; i < galleryPhotos.length; i++) {
+      html += '<div class="dot' + (i === galleryIndex ? ' active' : '') + '"></div>';
+    }
+    dots.innerHTML = html;
+  }
+  function galleryPrev() {
+    if (galleryPhotos.length <= 1) return;
+    galleryIndex = (galleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length;
+    _renderGalleryFrame();
+  }
+  function galleryNext() {
+    if (galleryPhotos.length <= 1) return;
+    galleryIndex = (galleryIndex + 1) % galleryPhotos.length;
+    _renderGalleryFrame();
+  }
+  function closePreview() {
+    document.getElementById('previewModal').classList.remove('open');
+    if (!isAnyPreviewOpen()) hideEmergencyClose();
+  }
+  function zoomBy(f) { zoomScale = Math.max(1, Math.min(6, zoomScale * f)); applyZoom(); }
+  function resetZoom() { zoomScale = 1; applyZoom(); }
+  function applyZoom() {
     document.getElementById('previewImg').style.transform = 'scale(' + zoomScale + ')';
     document.getElementById('previewImg').style.transition = 'transform 200ms cubic-bezier(.22,1,.36,1)';
-    document.getElementById('zoomReadout').textContent = Math.round(zoomScale*100) + '%';
+    document.getElementById('zoomReadout').textContent = Math.round(zoomScale * 100) + '%';
   }
-  function openLineGallery(idx){
+  function openLineGallery(idx) {
     const line = state.step3Order.lines[idx];
     if (!line || !line.photos || line.photos.length === 0) return;
-    const first = line.photos[0];
-    openPreview(toDriveThumb(first) || first, 'LINE-' + line.lineNumber);
+    openPreview(line.photos, 'LINE-' + line.lineNumber);
   }
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllPreviews(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape')     closeAllPreviews();
+    if (e.key === 'ArrowLeft')  galleryPrev();
+    if (e.key === 'ArrowRight') galleryNext();
+  });
 
   // ============ STATUS / TOAST ============
   function showStatusMsg(id, msg, kind){
