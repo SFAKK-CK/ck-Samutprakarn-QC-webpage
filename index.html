@@ -318,13 +318,12 @@
   /* ===== iOS-STYLE GLASS AESTHETIC (Factory 2) ===== */
   /* Aurora gradient body background */
   body.lang-th, body.lang-en, body {
-    /* Sky blue + green palette (replaces previous pink/peach aurora) */
     background:
-      radial-gradient(at 22% 18%, rgba(170, 220, 245, 0.7) 0%, transparent 50%),
-      radial-gradient(at 78% 14%, rgba(195, 230, 215, 0.6) 0%, transparent 50%),
-      radial-gradient(at 88% 78%, rgba(150, 210, 235, 0.6) 0%, transparent 50%),
-      radial-gradient(at 14% 88%, rgba(200, 230, 200, 0.58) 0%, transparent 50%),
-      linear-gradient(135deg, #dceef5 0%, #e7f1e6 50%, #d8e8f0 100%);
+      radial-gradient(at 18% 15%, rgba(135, 206, 250, 0.65) 0%, transparent 45%),
+      radial-gradient(at 80% 10%, rgba(100, 220, 200, 0.55) 0%, transparent 50%),
+      radial-gradient(at 85% 80%, rgba(72, 200, 160, 0.50) 0%, transparent 50%),
+      radial-gradient(at 10% 85%, rgba(150, 230, 255, 0.55) 0%, transparent 50%),
+      linear-gradient(135deg, #dff4f9 0%, #e8f9f4 50%, #d6f0f8 100%);
     background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%;
     animation: auroraDrift 22s ease-in-out infinite;
   }
@@ -347,12 +346,12 @@
   }
   .screen { background: transparent; }
 
-  /* Frosted surfaces — iOS-style with sky tone */
+  /* Frosted surfaces */
   .topbar, .greeting-band, .step-card, .container-slot, .modal-card, .actionbar, .step3-summary, .tabs {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.48) 100%);
-    -webkit-backdrop-filter: blur(28px) saturate(200%);
-    backdrop-filter: blur(28px) saturate(200%);
-    border-color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border-color: rgba(255, 255, 255, 0.55);
   }
   .topbar { border-bottom: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset; }
   .greeting-band { border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
@@ -360,12 +359,9 @@
   .tabs { border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
 
   .step-card {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.4) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    box-shadow:
-      0 10px 28px -14px rgba(30, 80, 110, 0.22),
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 -1px 0 rgba(255, 255, 255, 0.25) inset;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 24px -12px rgba(50, 60, 80, 0.18), 0 1px 0 rgba(255, 255, 255, 0.7) inset;
   }
   .step-card:hover {
     background: rgba(255, 255, 255, 0.7);
@@ -443,16 +439,13 @@
 
   /* Login brand mark — now a frosted glass square containing the waving hand */
   .brand-mark {
-    background: linear-gradient(165deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.45) 100%);
-    -webkit-backdrop-filter: blur(22px) saturate(200%);
-    backdrop-filter: blur(22px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
     color: inherit;
     font-size: 38px;
-    box-shadow:
-      0 12px 32px -10px rgba(35, 95, 135, 0.32),
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 -1px 0 rgba(180, 215, 235, 0.4) inset;
+    box-shadow: 0 10px 30px -10px rgba(60, 80, 120, 0.25), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
   }
 
   /* Waving hand animation */
@@ -479,20 +472,17 @@
 
   /* Today's Activity summary card */
   .daily-summary {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.42) 100%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
-    backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.68);
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
     border-radius: var(--r-lg);
     padding: 16px 12px;
     display: flex;
     align-items: center;
     justify-content: space-around;
     text-align: center;
-    box-shadow:
-      0 10px 28px -12px rgba(30, 80, 110, 0.22),
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 -1px 0 rgba(255, 255, 255, 0.25) inset;
+    box-shadow: 0 8px 24px -12px rgba(50,60,80,0.18), 0 1px 0 rgba(255,255,255,0.7) inset;
     margin-top: 4px;
     animation: cardIn var(--t-slow) cubic-bezier(.22,1,.36,1) both;
     animation-delay: 300ms;
@@ -1842,7 +1832,14 @@
   const CONTAINER_LABELS_EN = ['Empty container','Temp before opening','Temp middle','Temp rear','Seal number','Container closed'];
 
   function loadContainerPhotos(){
-    // Build placeholder slots immediately so the grid is never empty.
+    // ROOT CAUSE FIX: Apps Script API calls take 3-15 seconds. During that
+    // time the user may already have captured a photo (handleContainerCaptured
+    // runs and shows the preview). When the API finally returns it calls
+    // buildContainerGrid() which wipes the entire grid — including the pending
+    // preview — back to empty, causing "image appears then disappears" and
+    // nothing being saved to Google Sheets because the Save button vanishes.
+    // Fix: after rebuilding from server data, re-apply any slots that are
+    // currently in state.containerPending (captured but not yet saved).
     buildContainerGrid(new Array(6).fill(''));
     apiCall('getContainerPhotos', { orderName: state.step3Order.name })
       .then(result => {
@@ -1851,23 +1848,39 @@
           showStatusMsg('containerStatus', state.lang==='th'
             ? '⚠ ดึงรูปตู้สินค้าไม่ได้: ' + result.message
             : '⚠ Could not load container photos: ' + result.message, 'error');
-          return; // Keep the empty placeholder grid
+          // Even on error, re-apply any pending previews
+          _reapplyPendingContainerSlots();
+          return;
         }
         const photos = (result && Array.isArray(result.photos)) ? result.photos : new Array(6).fill('');
-        // Defensive: ensure exactly 6 elements
         while (photos.length < 6) photos.push('');
         state.containerSaved = (result && result.savedCount) || 0;
         buildContainerGrid(photos);
+        // Re-apply any photos captured but not yet saved to the server.
+        // Without this, the API response wipes in-progress previews.
+        _reapplyPendingContainerSlots();
         console.log('loadContainerPhotos: rebuilt with', state.containerSaved, '/6 saved');
       })
       .catch(err => {
         console.warn('loadContainerPhotos failed:', err);
         state.containerSaved = 0;
         buildContainerGrid(new Array(6).fill(''));
+        _reapplyPendingContainerSlots();
         showStatusMsg('containerStatus', state.lang==='th'
           ? '⚠ โหลดรูปตู้ไม่สำเร็จ: ' + err.message
           : '⚠ Failed to load container photos: ' + err.message, 'error');
       });
+  }
+  // Re-applies any container slot previews that are in state.containerPending
+  // (captured but not yet saved). Called after every buildContainerGrid so
+  // the API response never silently discards an in-progress capture.
+  function _reapplyPendingContainerSlots(){
+    Object.keys(state.containerPending).forEach(function(key){
+      var idx = parseInt(key, 10);
+      if (!isNaN(idx) && state.containerPending[idx]) {
+        handleContainerCaptured(idx, state.containerPending[idx]);
+      }
+    });
   }
   function buildContainerGrid(photos){
     const grid = document.getElementById('step3ContainerGrid');
