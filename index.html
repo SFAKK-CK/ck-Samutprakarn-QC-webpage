@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CK Frozen Fish — Samut Prakarn QC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f5f1; --bg-soft:#eeece4; --surface:#ffffff;
+    --ink:#1b1c1a; --ink-2:#3a3b39; --ink-3:#6b6e69; --ink-4:#9a9d97;
+    --line:#e3e1d8; --line-2:#d0cec3;
+    --accent:#2d5a87; --accent-soft:#dfe9f3; --accent-ink:#1c3d5e;
+    --teal:#3a7c7e; --teal-soft:#dceae8;
+    --amber:#b87333; --amber-soft:#f5e9d4;
+    --green:#2e6b3c; --green-soft:#dbe9d5;
+    --red:#9b2226; --red-soft:#f3dada;
+    --shadow-sm:0 1px 2px rgba(20,22,18,0.04),0 1px 2px rgba(20,22,18,0.04);
+    --shadow-md:0 6px 20px -8px rgba(20,22,18,0.12),0 2px 6px -2px rgba(20,22,18,0.06);
+    --shadow-lg:0 20px 60px -20px rgba(20,22,18,0.25),0 8px 16px -8px rgba(20,22,18,0.1);
+    --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:20px;
+    --t-fast:140ms cubic-bezier(.22,1,.36,1);
+    --t-med:240ms cubic-bezier(.22,1,.36,1);
+    --t-slow:380ms cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{font-family:'Manrope',-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;overflow:hidden}
+  body.lang-th{font-family:'Sarabun','Manrope',sans-serif}
+  body.lang-th .en{display:none}
+  body.lang-en .th{display:none}
+
+  /* App shell */
+  .app{position:relative;width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,#e9e7df 0%,#f6f5f1 40%,#e3eaed 100%)}
+  .phone{position:relative;width:100%;height:100%;max-width:520px;background:var(--bg);overflow:hidden;box-shadow:var(--shadow-lg)}
+  @media(min-width:700px){.phone{border-radius:32px;border:1px solid var(--line);height:96vh;max-height:920px}.app{padding:16px}}
+
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;transition:transform var(--t-slow),opacity var(--t-slow)}
+  .screen.hidden{transform:translateX(40px);opacity:0;pointer-events:none}
+  .screen.exiting{transform:translateX(-40px);opacity:0;pointer-events:none}
+
+  /* Top bar */
+  .topbar{flex-shrink:0;padding:14px 18px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .topbar .back{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;transition:background var(--t-fast),transform var(--t-fast)}
+  .topbar .back:hover{background:var(--bg-soft)}
+  .topbar .back:active{transform:scale(.92)}
+  .topbar .back svg{width:18px;height:18px;stroke:var(--ink-2);stroke-width:2;fill:none}
+  .topbar-title{flex:1;min-width:0}
+  .topbar-title h1{font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+  .topbar-title p{font-size:12px;color:var(--ink-3);margin-top:1px}
+  .topbar-actions{display:flex;align-items:center;gap:8px}
+  .lang-tab{display:flex;background:var(--bg-soft);border-radius:99px;padding:3px;font-size:11px;font-weight:600}
+  .lang-tab button{border:none;background:transparent;color:var(--ink-3);padding:5px 11px;border-radius:99px;cursor:pointer;font:inherit;transition:color var(--t-fast)}
+  .lang-tab button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+
+  .net-dot{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+  .net-dot::before{content:'';width:6px;height:6px;border-radius:50%}
+  .net-dot.online{background:var(--green-soft);color:var(--green)}
+  .net-dot.online::before{background:var(--green)}
+  .net-dot.offline{background:var(--red-soft);color:var(--red);animation:pulse 1.4s ease-in-out infinite}
+  .net-dot.offline::before{background:var(--red)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--red-soft)}50%{box-shadow:0 0 0 6px transparent}}
+
+  /* Content scroll area */
+  .content{flex:1;overflow-y:auto;padding:22px 18px 26px;-webkit-overflow-scrolling:touch}
+  .content::-webkit-scrollbar{width:0}
+
+  /* Sticky bottom action bar */
+  .actionbar{flex-shrink:0;padding:13px 18px calc(13px + env(safe-area-inset-bottom,0));background:var(--surface);border-top:1px solid var(--line);display:flex;gap:10px}
+
+  .btn{flex:1;border:none;cursor:pointer;font:inherit;padding:13px 18px;border-radius:var(--r-md);font-weight:600;font-size:15px;letter-spacing:-.005em;transition:transform var(--t-fast),background var(--t-fast),box-shadow var(--t-med),opacity var(--t-fast);display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  .btn:active:not(:disabled){transform:scale(.97)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:var(--ink);color:#fff}
+  .btn-primary:hover:not(:disabled){background:#000}
+  .btn-secondary{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .btn-secondary:hover:not(:disabled){background:var(--bg-soft)}
+  .btn-accent{background:var(--accent);color:#fff}
+  .btn-accent:hover:not(:disabled){background:var(--accent-ink)}
+  .btn-amber{background:var(--amber);color:#fff}
+  .btn-amber:hover:not(:disabled){background:#8c5520}
+  .btn-danger{background:var(--red);color:#fff}
+  .btn-danger:hover:not(:disabled){background:#7a1a1d}
+  .btn-ghost{background:transparent;color:var(--ink-2);border:1px solid var(--line)}
+
+  /* ============= LOGIN ============= */
+  .login-hero{margin-top:28px;margin-bottom:32px;text-align:center}
+  .brand-mark{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:18px;background:linear-gradient(145deg,#2d5a87,#1c3d5e);color:#fff;font-size:28px;box-shadow:0 8px 24px -10px rgba(45,90,135,0.4);animation:floatBob 4s ease-in-out infinite;margin-bottom:16px}
+  @keyframes floatBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  .brand-name{font-size:13px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  .login-greeting{font-size:30px;font-weight:700;letter-spacing:-.025em;margin-top:10px;color:var(--ink)}
+  .login-sub{margin-top:6px;color:var(--ink-3);font-size:14px}
+  .otp-row{display:flex;gap:8px;justify-content:center;margin:28px 0 16px}
+  .otp-cell{width:44px;height:58px;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r-md);display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:600;color:var(--ink);transition:border-color var(--t-med),background var(--t-med),transform var(--t-fast);position:relative}
+  .otp-cell.active{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-2px)}
+  .otp-cell.filled{border-color:var(--ink-3);background:var(--surface)}
+  .otp-cell.active::after{content:'';position:absolute;left:50%;bottom:14px;width:2px;height:22px;background:var(--accent);transform:translateX(-50%);animation:caret 1.1s steps(2,start) infinite}
+  @keyframes caret{0%,50%{opacity:1}51%,100%{opacity:0}}
+  .otp-input{position:absolute;left:-9999px;opacity:0}
+  .login-hint{text-align:center;color:var(--ink-4);font-size:12px;margin-top:14px}
+  .orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.4;pointer-events:none}
+  .orb-1{width:240px;height:240px;background:#cad9e6;top:-80px;right:-80px;animation:floatBob 10s ease-in-out infinite}
+  .orb-2{width:200px;height:200px;background:#d9e3d4;bottom:-60px;left:-60px;animation:floatBob 9s ease-in-out infinite reverse}
+
+  /* ============= STEP SELECT ============= */
+  .greeting-band{background:var(--surface);padding:22px 18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px}
+  .avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,var(--teal),#2a5a5b);color:#fff;display:grid;place-items:center;font-weight:700;font-size:16px;letter-spacing:.05em;flex-shrink:0}
+  .greeting-text{flex:1;min-width:0}
+  .greeting-text .name{font-size:16px;font-weight:600;letter-spacing:-.01em}
+  .greeting-text .meta{font-size:12px;color:var(--ink-3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+  .signout-btn{border:none;background:transparent;color:var(--ink-3);font:inherit;font-size:12px;cursor:pointer;padding:6px 10px;border-radius:6px;transition:background var(--t-fast),color var(--t-fast)}
+  .signout-btn:hover{background:var(--bg-soft);color:var(--ink)}
+
+  .section-label{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-4);margin:22px 0 12px}
+  .step-cards{display:flex;flex-direction:column;gap:12px}
+  .step-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:border-color var(--t-med),transform var(--t-fast),box-shadow var(--t-med);position:relative;overflow:hidden}
+  .step-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);transform:scaleY(0);transform-origin:bottom;transition:transform var(--t-med)}
+  .step-card:hover{border-color:var(--line-2);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+  .step-card:hover::before{transform:scaleY(1)}
+  .step-card:active{transform:scale(.99)}
+  .step-card .icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+  .step-card.step-1 .icon{background:var(--teal-soft);color:var(--teal)}.step-card.step-1::before{background:var(--teal)}
+  .step-card.step-2 .icon{background:var(--accent-soft);color:var(--accent)}.step-card.step-2::before{background:var(--accent)}
+  .step-card.step-3 .icon{background:var(--amber-soft);color:var(--amber)}.step-card.step-3::before{background:var(--amber)}
+  .step-info{flex:1;min-width:0}
+  .step-num{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--ink-4);text-transform:uppercase}
+  .step-name{font-size:17px;font-weight:600;letter-spacing:-.015em;margin-top:2px;color:var(--ink)}
+  .step-desc{font-size:13px;color:var(--ink-3);margin-top:3px;line-height:1.4}
+  .step-card .chev{color:var(--ink-4);transition:transform var(--t-fast),color var(--t-fast)}
+  .step-card:hover .chev{transform:translateX(3px);color:var(--ink-2)}
+
+  /* ============= STEP 1/2 ============= */
+  .order-pill{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:#fff;padding:8px 14px;border-radius:99px;font-size:13px;font-weight:600;letter-spacing:-.005em}
+  .order-pill.amber{background:var(--amber)}
+  .order-pill .label{opacity:.6;font-weight:500}
+  .order-pill .value{font-family:'JetBrains Mono',monospace;font-weight:700}
+  .item-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:99px;background:var(--surface);border:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+  .item-badge .dot{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace}
+
+  .input-block{margin-bottom:16px}
+  .input-label{font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+  .input-label .req{color:var(--red);font-weight:700}
+  .text-input,textarea.text-input{width:100%;padding:12px 14px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);font:inherit;font-size:15px;color:var(--ink);transition:border-color var(--t-fast),box-shadow var(--t-fast),background var(--t-fast);font-family:inherit;resize:none}
+  .text-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);background:#fff}
+  .text-input.mono{font-family:'JetBrains Mono',monospace;letter-spacing:.02em;text-transform:uppercase}
+  .input-row{display:flex;gap:8px;align-items:stretch}
+  .input-row .text-input{flex:1}
+  .icon-btn{width:46px;flex-shrink:0;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);display:grid;place-items:center;cursor:pointer;color:var(--ink-2);transition:background var(--t-fast),transform var(--t-fast)}
+  .icon-btn:hover{background:var(--bg-soft)}
+  .icon-btn:active{transform:scale(.94)}
+
+  .select-block{position:relative}
+  .select-trigger{width:100%;padding:12px 14px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);font:inherit;font-size:15px;color:var(--ink);text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:border-color var(--t-fast),background var(--t-fast)}
+  .select-trigger:hover{background:var(--bg-soft)}
+  .select-trigger .placeholder{color:var(--ink-4)}
+  .select-trigger .chev{color:var(--ink-3);transition:transform var(--t-med)}
+  .select-block.open .select-trigger .chev{transform:rotate(180deg)}
+  .select-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-md);max-height:260px;overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity var(--t-med),transform var(--t-med)}
+  .select-block.open .select-menu{opacity:1;pointer-events:auto;transform:translateY(0)}
+  .select-menu-item{padding:11px 14px;font-size:14px;cursor:pointer;transition:background var(--t-fast);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .select-menu-item:last-child{border-bottom:none}
+  .select-menu-item:not(.disabled):hover{background:var(--bg-soft)}
+  .select-menu-item.disabled{color:var(--ink-4);cursor:not-allowed}
+  .select-menu-item .pill{font-size:10px;font-weight:700;color:var(--green);background:var(--green-soft);padding:1px 6px;border-radius:99px}
+  .select-search{padding:8px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
+  .select-search input{width:100%;padding:7px 10px;border:1px solid var(--line);background:var(--bg-soft);border-radius:var(--r-sm);font:inherit;font-size:13px}
+
+  /* Photo grid */
+  .photo-grid-title{font-size:13px;font-weight:600;color:var(--ink-2);margin:18px 0 4px;display:flex;align-items:center;justify-content:space-between}
+  .photo-grid-title .progress-mini{font-size:11px;color:var(--ink-3);font-weight:500;font-family:'JetBrains Mono',monospace}
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .photo-slot{position:relative;aspect-ratio:1;border:1.5px dashed var(--line-2);border-radius:var(--r-md);background:var(--surface);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px;transition:border-color var(--t-med),background var(--t-med),transform var(--t-fast)}
+  .photo-slot:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .photo-slot:active{transform:scale(.97)}
+  .photo-slot.optional{border-style:dotted;opacity:.7}
+  .photo-slot.optional:hover{opacity:1}
+  .photo-slot.hidden-slot{display:none}
+  .photo-slot .slot-num{position:absolute;top:8px;left:10px;font-size:10px;font-weight:700;color:var(--ink-4);font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+  .photo-slot .slot-cam{font-size:22px;color:var(--ink-3);margin-bottom:6px;transition:transform var(--t-med)}
+  .photo-slot:hover .slot-cam{transform:scale(1.08)}
+  .photo-slot .slot-label{font-size:11px;color:var(--ink-3);line-height:1.3;padding:0 4px}
+  .photo-slot.captured{border-style:solid;border-color:var(--green);background:#000;padding:0;animation:slotFlash .6s ease}
+  @keyframes slotFlash{0%{box-shadow:0 0 0 0 var(--green-soft)}50%{box-shadow:0 0 0 6px rgba(46,107,60,0)}100%{box-shadow:0 0 0 0 rgba(46,107,60,0)}}
+  .photo-slot.captured img{width:100%;height:100%;object-fit:cover;display:block;animation:fadeIn var(--t-slow) ease both}
+  .photo-slot.captured .check-tag{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:popCheck .35s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes popCheck{0%{transform:scale(0)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .photo-slot.captured .retake-overlay{position:absolute;inset:auto 0 0;padding:6px 8px;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);color:#fff;font-size:11px;font-weight:600;text-align:center;opacity:0;transition:opacity var(--t-fast)}
+  .photo-slot.captured:hover .retake-overlay{opacity:1}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  /* Status banner */
+  .status-msg{margin-top:12px;padding:11px 14px;border-radius:var(--r-md);font-size:13px;font-weight:500;display:flex;align-items:flex-start;gap:8px;line-height:1.45}
+  .status-msg.success{background:var(--green-soft);color:var(--green)}
+  .status-msg.error{background:var(--red-soft);color:var(--red)}
+  .status-msg.loading{background:var(--accent-soft);color:var(--accent-ink)}
+  .status-msg .retry{margin-left:auto;background:#fff;color:var(--red);border:1px solid var(--red);padding:4px 10px;border-radius:99px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+
+  .toast{position:fixed;left:50%;bottom:80px;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:99px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:200;opacity:0;pointer-events:none;transition:transform var(--t-slow),opacity var(--t-slow);display:flex;align-items:center;gap:8px;max-width:90vw}
+  .toast.show{transform:translate(-50%,0);opacity:1}
+  .toast.success{background:var(--green);color:#fff}
+  .toast.error{background:var(--red);color:#fff}
+
+  /* ============= STEP 3 ============= */
+  .tabs{display:flex;border-bottom:1px solid var(--line);background:var(--surface);padding:0 18px;flex-shrink:0;position:relative}
+  .tab-btn{border:none;background:transparent;font:inherit;padding:13px 0;margin-right:22px;cursor:pointer;color:var(--ink-3);font-weight:600;font-size:14px;letter-spacing:-.005em;position:relative;display:flex;align-items:center;gap:8px;transition:color var(--t-fast)}
+  .tab-btn .badge{background:var(--bg-soft);color:var(--ink-2);padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;transition:background var(--t-fast),color var(--t-fast)}
+  .tab-btn.active{color:var(--ink)}
+  .tab-btn .badge.complete{background:var(--green);color:#fff}
+  .tab-btn .badge.partial{background:var(--amber);color:#fff}
+  .tab-indicator{position:absolute;bottom:-1px;height:2px;background:var(--ink);transition:left var(--t-med),width var(--t-med)}
+  .tab-content{flex:1;overflow-y:auto;padding:18px;display:none}
+  .tab-content.active{display:block}
+
+  .chips-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 18px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:99px;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:transform var(--t-fast),background var(--t-fast);animation:chipIn .35s cubic-bezier(.22,1,.36,1) both;border:none}
+  @keyframes chipIn{from{opacity:0;transform:translateY(6px) scale(.92)}to{opacity:1;transform:none}}
+  .chip:hover{transform:translateY(-1px)}
+  .chip .count{background:var(--green);color:#fff;border-radius:99px;padding:1px 6px;font-size:10px}
+  .chip.recent{background:var(--bg-soft);color:var(--ink-2)}
+  .chip.recent .count{background:var(--ink-3)}
+  .chip.empty-state{background:var(--bg-soft);color:var(--ink-4);font-family:inherit;cursor:default}
+
+  .container-grid{display:flex;flex-direction:column;gap:10px}
+  .container-slot{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);overflow:hidden;transition:border-color var(--t-med),box-shadow var(--t-med);animation:slotIn var(--t-slow) cubic-bezier(.22,1,.36,1) both}
+  @keyframes slotIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+  .container-slot.saved{border-color:var(--green-soft);background:linear-gradient(0deg,var(--green-soft),var(--surface) 60%)}
+  .container-slot.saving{border-color:var(--amber);background:#fff8eb}
+  .container-slot.failed{border-color:var(--red);background:var(--red-soft)}
+  .container-slot.preview{border-color:var(--accent);background:var(--accent-soft)}
+  .container-slot-head{display:flex;align-items:center;gap:10px;padding:11px 14px}
+  .container-slot-num{width:24px;height:24px;border-radius:6px;background:var(--bg-soft);color:var(--ink-2);display:grid;place-items:center;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+  .container-slot.saved .container-slot-num{background:var(--green);color:#fff}
+  .container-slot.saving .container-slot-num{background:var(--amber);color:#fff}
+  .container-slot.failed .container-slot-num{background:var(--red);color:#fff}
+  .container-slot-name{flex:1;font-size:13px;font-weight:600;color:var(--ink-2);min-width:0}
+  .container-slot-status{font-size:18px}
+  .gm-mini{border:none;background:transparent;color:var(--ink-3);font:inherit;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background var(--t-fast)}
+  .gm-mini:hover{background:var(--bg-soft);color:var(--ink-2)}
+  .container-slot-body{padding:0 14px 14px}
+  .container-slot.empty .container-slot-body button{width:100%;padding:11px;border:1px dashed var(--line-2);background:transparent;border-radius:var(--r-sm);font:inherit;font-size:13px;color:var(--ink-3);cursor:pointer;transition:background var(--t-fast),border-color var(--t-fast)}
+  .container-slot.empty .container-slot-body button:hover{background:var(--bg-soft);border-color:var(--accent)}
+  .container-thumb{width:100%;border-radius:var(--r-sm);aspect-ratio:16/10;background:#000;display:grid;place-items:center;color:#fff;font-size:11px;cursor:zoom-in;background-size:cover;background-position:center;overflow:hidden}
+  .container-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .container-preview-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .container-saving-msg{padding:11px;font-size:13px;color:var(--amber);font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
+  .container-error{padding:8px 10px;background:var(--red-soft);color:var(--red);font-size:12px;font-weight:500;border-radius:var(--r-sm);margin-top:8px;line-height:1.4}
+
+  .step3-summary{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .ring{position:relative;width:54px;height:54px;flex-shrink:0}
+  .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:5}
+  .ring .track{stroke:var(--bg-soft)}
+  .ring .progress{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset 600ms cubic-bezier(.22,1,.36,1)}
+  .ring .num{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .step3-summary .info{flex:1;min-width:0}
+  .step3-summary .info-title{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+  .step3-summary .info-meta{font-size:12px;color:var(--ink-3);margin-top:3px}
+  .step3-refresh{border:1px solid var(--line);background:var(--surface);width:36px;height:36px;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--ink-3);transition:transform var(--t-fast),background var(--t-fast)}
+  .step3-refresh:hover{background:var(--bg-soft);color:var(--ink-2)}
+  .step3-refresh:active{transform:rotate(180deg)}
+  .step3-refresh svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
+
+  /* ============= MODALS ============= */
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,22,18,0.55);backdrop-filter:blur(6px);z-index:250;display:flex;align-items:center;justify-content:center;padding:18px;opacity:0;pointer-events:none;transition:opacity var(--t-med)}
+  .modal-overlay.open{opacity:1;pointer-events:auto}
+  .modal-card{background:var(--surface);border-radius:var(--r-xl);padding:22px;width:100%;max-width:340px;box-shadow:var(--shadow-lg);transform:scale(.92);transition:transform var(--t-slow)}
+  .modal-overlay.open .modal-card{transform:scale(1)}
+  .modal-card h3{font-size:18px;font-weight:700;letter-spacing:-.015em;margin-bottom:6px}
+  .modal-card p.modal-sub{font-size:13px;color:var(--ink-3);margin-bottom:16px}
+  .modal-card .text-input{font-family:'JetBrains Mono',monospace;letter-spacing:.18em;text-align:center;font-size:22px;padding:14px}
+  .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+
+  /* ============= PHOTO PREVIEW MODAL ============= */
+  .preview{position:fixed;inset:0;z-index:300;background:rgba(15,16,14,.94);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity var(--t-med)}
+  .preview.open{opacity:1;pointer-events:auto}
+  .preview img{max-width:92vw;max-height:72vh;border-radius:12px;transform:scale(.9);transition:transform var(--t-slow);box-shadow:0 30px 80px -20px rgba(0,0,0,.5);user-select:none;-webkit-user-drag:none;transform-origin:center}
+  .preview.open img{transform:scale(1)}
+  .preview-bar{position:fixed;bottom:14px;left:14px;right:14px;background:rgba(255,255,255,.12);backdrop-filter:blur(20px);border-radius:18px;padding:6px;display:flex;gap:6px;z-index:310}
+  .preview-bar button{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;padding:14px 8px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:11px;font-weight:600;transition:background var(--t-fast),transform var(--t-fast)}
+  .preview-bar button:hover{background:rgba(255,255,255,.2)}
+  .preview-bar button:active{transform:scale(.95)}
+  .preview-bar button.close-x{background:rgba(155,34,38,.7);border-color:rgba(255,255,255,.3)}
+  .preview-bar .icon{font-size:18px}
+  .preview-bar .zoom-readout{flex:.7;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:12px}
+  .preview-label{position:absolute;top:18px;right:18px;color:rgba(255,255,255,.6);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+
+  /* Emergency close — fixed top-left, follows visual viewport for browser-zoom case */
+  .emergency-close{display:none;position:fixed;top:12px;left:12px;z-index:999;background:var(--red);color:#fff;border:3px solid #fff;border-radius:50%;width:52px;height:52px;font-size:24px;font-weight:bold;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.5);align-items:center;justify-content:center;transform-origin:top left;transition:transform var(--t-fast)}
+  .emergency-close.show{display:flex}
+  .emergency-close:active{transform:scale(.92)}
+
+  /* Stagger entrance for cards */
+  .stagger > *{animation:cardIn var(--t-slow) cubic-bezier(.22,1,.36,1) both}
+  .stagger > *:nth-child(1){animation-delay:60ms}
+  .stagger > *:nth-child(2){animation-delay:120ms}
+  .stagger > *:nth-child(3){animation-delay:180ms}
+  .stagger > *:nth-child(4){animation-delay:240ms}
+  @keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner-dark{border-color:rgba(0,0,0,.2);border-top-color:var(--ink)}
+
+  .photo-input{display:none}
+  .divider{height:1px;background:var(--line);margin:18px 0;border:none}
+</style>
+</head>
+<body class="lang-en">
+
+<button class="emergency-close" id="emergencyClose" onclick="closeAllPreviews()" aria-label="Close">✕</button>
+
+<div class="app">
+  <div class="phone">
+
+    <!-- ============= LOGIN ============= -->
+    <div class="screen" id="screen-staffId">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="content" style="display:flex;flex-direction:column;justify-content:space-between;align-items:stretch">
+        <div></div>
+        <div>
+          <div class="login-hero">
+            <div class="brand-mark">🐟</div>
+            <div class="brand-name">CK Frozen Fish · Samut Prakarn</div>
+            <h1 class="login-greeting"><span class="th">ยินดีต้อนรับ</span><span class="en">Welcome</span></h1>
+            <p class="login-sub"><span class="th">กรอกรหัสพนักงาน 7 หลัก</span><span class="en">Enter your 7-digit Staff ID</span></p>
+          </div>
+          <div class="otp-row" id="otpRow">
+            <div class="otp-cell active"></div><div class="otp-cell"></div><div class="otp-cell"></div>
+            <div class="otp-cell"></div><div class="otp-cell"></div><div class="otp-cell"></div><div class="otp-cell"></div>
+          </div>
+          <input class="otp-input" id="staffIdInput" type="text" inputmode="numeric" maxlength="7" autocomplete="off">
+          <p class="login-hint"><span class="th">รหัสจากบัตรประจำตัว</span><span class="en">From your factory badge</span></p>
+          <div id="staffIdError" class="status-msg error" style="display:none;margin-top:14px"></div>
+        </div>
+        <div style="padding-bottom:8px">
+          <button class="btn btn-primary" id="loginBtn" disabled style="width:100%"><span class="th">เข้าสู่ระบบ</span><span class="en">Continue</span></button>
+        </div>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:space-between">
+        <span class="net-dot online" id="netLogin">Online</span>
+        <div class="lang-tab">
+          <button onclick="setLang('th')" data-l="th">TH</button>
+          <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= STEP SELECT ============= -->
+    <div class="screen hidden" id="screen-stepSelect">
+      <div class="greeting-band">
+        <div class="avatar" id="staffAvatar">··</div>
+        <div class="greeting-text">
+          <div class="name" id="staffNameDisplay">—</div>
+          <div class="meta" id="staffMetaDisplay">—</div>
+        </div>
+        <button class="signout-btn" onclick="signOut()"><span class="th">ออก</span><span class="en">Sign out</span></button>
+      </div>
+      <div class="topbar" style="border-bottom:none">
+        <div class="topbar-title">
+          <h1>CK Frozen Fish</h1>
+          <p>Factory · Samut Prakarn</p>
+        </div>
+        <div class="topbar-actions">
+          <span class="net-dot online" id="netSelect">Online</span>
+          <div class="lang-tab">
+            <button onclick="setLang('th')" data-l="th">TH</button>
+            <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="section-label"><span class="th">เลือกขั้นตอน</span><span class="en">Choose a step</span></div>
+        <div class="step-cards stagger">
+          <div class="step-card step-1" onclick="selectStep(1)">
+            <div class="icon">📦</div>
+            <div class="step-info">
+              <div class="step-num"><span class="th">ขั้นตอนที่ 1</span><span class="en">Step 1</span></div>
+              <div class="step-name"><span class="th">บรรจุภัณฑ์</span><span class="en">Packing</span></div>
+              <div class="step-desc"><span class="th">ถ่ายรูปสินค้าและฉลาก 6 รูป</span><span class="en">Capture product & label photos</span></div>
+            </div>
+            <svg class="chev" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="step-card step-2" onclick="selectStep(2)">
+            <div class="icon">❄</div>
+            <div class="step-info">
+              <div class="step-num"><span class="th">ขั้นตอนที่ 2</span><span class="en">Step 2</span></div>
+              <div class="step-name"><span class="th">ตรวจห้องเย็น</span><span class="en">Cold Storage QC</span></div>
+              <div class="step-desc"><span class="th">สุ่มตรวจสินค้าก่อนขนถ่าย</span><span class="en">Random check before loading</span></div>
+            </div>
+            <svg class="chev" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="step-card step-3" onclick="selectStep(3)">
+            <div class="icon">🚚</div>
+            <div class="step-info">
+              <div class="step-num"><span class="th">ขั้นตอนที่ 3</span><span class="en">Step 3</span></div>
+              <div class="step-name"><span class="th">ขนถ่ายตู้</span><span class="en">Loading</span></div>
+              <div class="step-desc"><span class="th">ถ่ายรูปแต่ละแถว + ตู้สินค้า</span><span class="en">Line photos + container shots</span></div>
+            </div>
+            <svg class="chev" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============= STEP 1/2 ============= -->
+    <div class="screen hidden" id="screen-step12">
+      <div class="topbar">
+        <button class="back" onclick="goBackStep12()" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="topbar-title">
+          <h1 id="step12Title">Step 1 · Packing</h1>
+          <p id="step12Sub"><span class="th">ถ่ายรูปสินค้าและฉลาก</span><span class="en">Capture product & label photos</span></p>
+        </div>
+        <div class="topbar-actions">
+          <span class="net-dot online" id="netStep12">Online</span>
+          <div class="lang-tab">
+            <button onclick="setLang('th')" data-l="th">TH</button>
+            <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order entry sub-screen -->
+      <div id="step12-orderEntry" class="content">
+        <div class="input-block">
+          <div class="input-label"><span class="th">ชื่อ Order</span><span class="en">Order name</span><span class="req">*</span></div>
+          <div class="input-row">
+            <input class="text-input mono" id="step12OrderInput" placeholder="ABT-1/A" autocomplete="off"
+                   oninput="this.value=this.value.toUpperCase();resetOrderBtn12()"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();checkOrderStep12Input();}">
+            <button class="icon-btn" onclick="checkOrderStep12Input()" id="step12CheckBtn" title="Check">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
+          </div>
+          <p style="font-size:11px;color:var(--ink-4);margin-top:7px"><span class="th">รูปแบบ: ABT-1/A หรือ IM/ABT014</span><span class="en">Format: ABT-1/A or IM/ABT014</span></p>
+          <div id="step12OrderStatus" class="status-msg" style="display:none"></div>
+        </div>
+      </div>
+      <div class="actionbar" id="step12OrderActions">
+        <button class="btn btn-primary" id="step12StartBtn" onclick="startStep12()" disabled>
+          <span class="th">เริ่มบันทึก</span><span class="en">Start recording</span>
+        </button>
+        <button class="btn btn-secondary" id="step12ContinueBtn" onclick="startStep12()" disabled style="display:none">
+          <span class="th">ดำเนินการต่อ</span><span class="en">Continue</span>
+        </button>
+      </div>
+
+      <!-- Item form sub-screen -->
+      <div id="step12-itemForm" class="content" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:8px;flex-wrap:wrap">
+          <div class="order-pill">
+            <span class="label">Order</span>
+            <span class="value" id="step12OrderBadge">—</span>
+          </div>
+          <div class="item-badge">
+            <div class="dot" id="step12ItemNum">1</div>
+            <span><span class="th">รายการ</span><span class="en">Item</span></span>
+          </div>
+        </div>
+
+        <div class="input-block">
+          <div class="input-label"><span class="th">ประเภทสินค้า</span><span class="en">Product type</span><span class="req">*</span></div>
+          <div class="select-block" id="step12ProductSelect">
+            <button class="select-trigger" onclick="toggleSelect('step12ProductSelect')">
+              <span id="step12ProductValueLabel" class="placeholder"><span class="th">เลือก...</span><span class="en">Select...</span></span>
+              <svg class="chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="select-menu">
+              <div class="select-search"><input type="text" id="step12ProductSearch" placeholder="🔍 HILSA, ROHU..." oninput="filterProducts12(this.value)"></div>
+              <div id="step12ProductList"></div>
+            </div>
+          </div>
+          <div id="step12CustomProductBox" style="margin-top:8px;display:none">
+            <input class="text-input mono" id="step12CustomProductInput" placeholder="Custom product...">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          <div>
+            <div class="input-label"><span class="th">การแปรรูป</span><span class="en">Processing</span><span class="req">*</span></div>
+            <div class="select-block" id="step12ProcSelect">
+              <button class="select-trigger" onclick="toggleSelect('step12ProcSelect')">
+                <span id="step12ProcValueLabel" class="placeholder"><span class="th">เลือก...</span><span class="en">Select...</span></span>
+                <svg class="chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="select-menu" id="step12ProcList"></div>
+            </div>
+            <div id="step12CustomProcBox" style="margin-top:8px;display:none">
+              <input class="text-input mono" id="step12CustomProcInput" placeholder="Custom...">
+            </div>
+          </div>
+          <div>
+            <div class="input-label"><span class="th">ขนาด</span><span class="en">Size</span><span class="req">*</span></div>
+            <div class="select-block" id="step12SizeSelect">
+              <button class="select-trigger" onclick="toggleSelect('step12SizeSelect')">
+                <span id="step12SizeValueLabel" class="placeholder"><span class="th">เลือก...</span><span class="en">Select...</span></span>
+                <svg class="chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="select-menu" id="step12SizeList"></div>
+            </div>
+            <div id="step12CustomSizeBox" style="margin-top:8px;display:none">
+              <input class="text-input mono" id="step12CustomSizeInput" placeholder="20KG, 500G...">
+            </div>
+          </div>
+        </div>
+
+        <div class="input-block">
+          <div class="input-label"><span class="th">หมายเหตุ (ถ้ามี)</span><span class="en">Notes (optional)</span></div>
+          <input class="text-input" id="step12Notes" placeholder="">
+        </div>
+
+        <div class="photo-grid-title">
+          <span><span class="th">รูปภาพ</span><span class="en">Photos</span></span>
+          <span class="progress-mini" id="step12PhotoProgress">0 / 6 required</span>
+        </div>
+        <div class="photo-grid" id="step12PhotoGrid"></div>
+
+        <div id="step12ItemStatus" class="status-msg" style="display:none"></div>
+      </div>
+      <div class="actionbar" id="step12ItemActions" style="display:none">
+        <button class="btn btn-secondary" style="max-width:130px" onclick="goBackStep12()">
+          <span class="th">กลับ</span><span class="en">Back</span>
+        </button>
+        <button class="btn btn-primary" id="step12SaveBtn" onclick="saveStep12Item()">
+          💾 <span class="th">บันทึก Item</span><span class="en">Save item</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============= STEP 3 ============= -->
+    <div class="screen hidden" id="screen-step3">
+      <div class="topbar">
+        <button class="back" onclick="goBackStep3()" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="topbar-title">
+          <h1>Step 3 · Loading</h1>
+          <p><span class="th">ขนถ่ายตู้สินค้า</span><span class="en">Container loading</span></p>
+        </div>
+        <div class="topbar-actions">
+          <span class="net-dot online" id="netStep3">Online</span>
+          <div class="lang-tab">
+            <button onclick="setLang('th')" data-l="th">TH</button>
+            <button onclick="setLang('en')" data-l="en" class="active">EN</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order entry -->
+      <div id="step3-orderEntry" class="content">
+        <div class="input-block">
+          <div class="input-label"><span class="th">ชื่อ Order</span><span class="en">Order name</span><span class="req">*</span></div>
+          <div class="input-row">
+            <input class="text-input mono" id="step3OrderInput" placeholder="ABT-1/A" autocomplete="off"
+                   oninput="this.value=this.value.toUpperCase();resetOrderBtn3()"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();checkOrderStep3Input();}">
+            <button class="icon-btn" onclick="checkOrderStep3Input()" id="step3CheckBtn">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
+          </div>
+          <p style="font-size:11px;color:var(--ink-4);margin-top:7px"><span class="th">💡 รายการ Order ที่บันทึกใน 5 วันที่ผ่านมา</span><span class="en">💡 Recent orders (last 5 days)</span></p>
+        </div>
+        <div id="step3RecentChips" class="chips-row" style="margin-bottom:16px"></div>
+        <div id="step3OrderStatus" class="status-msg" style="display:none"></div>
+      </div>
+      <div class="actionbar" id="step3OrderActions">
+        <button class="btn btn-amber" id="step3StartBtn" onclick="startStep3()" disabled>
+          <span class="th">เริ่มบันทึก</span><span class="en">Start recording</span>
+        </button>
+        <button class="btn btn-secondary" id="step3ContinueBtn" onclick="startStep3()" disabled style="display:none">
+          <span class="th">ดำเนินการต่อ</span><span class="en">Continue</span>
+        </button>
+      </div>
+
+      <!-- Tabs (lines + container) -->
+      <div id="step3-tabs" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <div style="padding:12px 18px 0;background:var(--surface)">
+          <div class="order-pill amber">
+            <span class="label">Order</span>
+            <span class="value" id="step3OrderBadge">—</span>
+          </div>
+          <div id="step3CompletedBanner" class="status-msg success" style="display:none;margin-top:10px">
+            ✓ <span class="th">Order นี้เสร็จสิ้นแล้ว</span><span class="en">This order is complete</span>
+          </div>
+        </div>
+        <div class="tabs" id="step3Tabs">
+          <button class="tab-btn active" data-tab="lines">
+            <span class="th">แถวโหลด</span><span class="en">Lines</span>
+            <span class="badge" id="linesBadge">0</span>
+          </button>
+          <button class="tab-btn" data-tab="container">
+            <span class="th">ตู้สินค้า</span><span class="en">Container</span>
+            <span class="badge" id="containerBadge">0/6</span>
+          </button>
+          <div class="tab-indicator" id="tabIndicator"></div>
+        </div>
+
+        <div class="tab-content active" id="tabLines">
+          <div class="step3-summary">
+            <div class="ring">
+              <svg viewBox="0 0 60 60">
+                <circle class="track" cx="30" cy="30" r="25"/>
+                <circle class="progress" cx="30" cy="30" r="25" stroke-dasharray="157.08" stroke-dashoffset="157.08" id="linesRing"/>
+              </svg>
+              <div class="num" id="linesNum">0</div>
+            </div>
+            <div class="info">
+              <div class="info-title"><span class="th">แถวที่บันทึกแล้ว</span><span class="en">Recorded lines</span></div>
+              <div class="info-meta"><span class="th">แตะ chip เพื่อดูรูปภาพ</span><span class="en">Tap a chip to view photos</span></div>
+            </div>
+            <button class="step3-refresh" onclick="refreshStep3Lines()" title="Refresh">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+          </div>
+
+          <div class="chips-row" id="step3LineChips"></div>
+
+          <div id="step3UploadSection">
+            <div class="input-block">
+              <div class="input-label"><span class="th">เลือกแถว</span><span class="en">Select line</span><span class="req">*</span></div>
+              <div class="select-block" id="step3LineSelectBlock">
+                <button class="select-trigger" onclick="toggleSelect('step3LineSelectBlock')">
+                  <span id="step3LineValueLabel" class="placeholder"><span class="th">เลือกแถว...</span><span class="en">Select line...</span></span>
+                  <svg class="chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="select-menu" id="step3LineList"></div>
+              </div>
+            </div>
+
+            <div class="photo-grid-title">
+              <span><span class="th">รูปภาพแถว</span><span class="en">Line photos</span></span>
+              <span class="progress-mini">1 required · 2 optional</span>
+            </div>
+            <div class="photo-grid" id="step3LinePhotoGrid"></div>
+
+            <div id="step3LineStatus" class="status-msg" style="display:none"></div>
+          </div>
+
+          <div id="step3GMRevertSection" style="display:none;margin-top:12px">
+            <button class="btn btn-danger" style="width:100%" onclick="showGMRevertModal()">
+              🔓 <span class="th">ยกเลิกสถานะ (GM)</span><span class="en">Revert complete (GM)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tabContainer">
+          <div class="step3-summary">
+            <div class="ring">
+              <svg viewBox="0 0 60 60">
+                <circle class="track" cx="30" cy="30" r="25"/>
+                <circle class="progress" cx="30" cy="30" r="25" stroke="var(--amber)" stroke-dasharray="157.08" stroke-dashoffset="157.08" id="containerRing"/>
+              </svg>
+              <div class="num" id="containerNum">0/6</div>
+            </div>
+            <div class="info">
+              <div class="info-title"><span class="th">รูปตู้สินค้า</span><span class="en">Container photos</span></div>
+              <div class="info-meta"><span class="th">บังคับครบ 6 รูปก่อนเสร็จสิ้น</span><span class="en">All 6 required to complete</span></div>
+            </div>
+          </div>
+          <div class="container-grid" id="step3ContainerGrid"></div>
+          <div id="containerStatus" class="status-msg" style="display:none;margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="actionbar" id="step3TabsActions" style="display:none">
+        <button class="btn btn-secondary" id="step3SaveLineBtn" onclick="saveStep3Line()">
+          💾 <span class="th">บันทึกแถว</span><span class="en">Save line</span>
+        </button>
+        <button class="btn btn-accent" id="step3CompleteBtn" onclick="completeStep3()" disabled>
+          ✅ <span class="th">เสร็จสิ้น</span><span class="en">Complete</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============= MODALS ============= -->
+    <div class="modal-overlay" id="gmRevertModal">
+      <div class="modal-card">
+        <h3>🔐 <span class="th">รหัสผ่าน GM</span><span class="en">GM Password</span></h3>
+        <p class="modal-sub"><span class="th">ใส่รหัสเพื่อยกเลิกสถานะ "เสร็จสิ้น"</span><span class="en">Enter password to revert "Complete" status</span></p>
+        <input type="password" id="gmRevertPassword" class="text-input" placeholder="••••" onkeydown="if(event.key==='Enter'){event.preventDefault();submitGMRevert();}">
+        <div id="gmRevertError" class="status-msg error" style="display:none;margin-top:10px"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeGMRevertModal()"><span class="th">ยกเลิก</span><span class="en">Cancel</span></button>
+          <button class="btn btn-primary" onclick="submitGMRevert()"><span class="th">ยืนยัน</span><span class="en">Confirm</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="gmContainerModal">
+      <div class="modal-card">
+        <h3>✏ <span class="th">ปลดล็อครูปภาพ</span><span class="en">Unlock photo</span></h3>
+        <p class="modal-sub"><span class="th">ใส่รหัสผ่าน GM เพื่อถ่ายรูปใหม่</span><span class="en">Enter GM password to retake this photo</span></p>
+        <input type="password" id="gmContainerPassword" class="text-input" placeholder="••••" onkeydown="if(event.key==='Enter'){event.preventDefault();submitGMContainerUnlock();}">
+        <div id="gmContainerError" class="status-msg error" style="display:none;margin-top:10px"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeGMContainerModal()"><span class="th">ยกเลิก</span><span class="en">Cancel</span></button>
+          <button class="btn btn-primary" onclick="submitGMContainerUnlock()"><span class="th">ยืนยัน</span><span class="en">Confirm</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo preview -->
+    <div class="preview" id="previewModal">
+      <div class="preview-label" id="previewLabel"></div>
+      <img id="previewImg" alt="">
+      <div class="preview-bar">
+        <button class="close-x" onclick="closePreview()"><span class="icon">✕</span><span><span class="th">ปิด</span><span class="en">Close</span></span></button>
+        <button onclick="zoomBy(0.77)"><span class="icon">−</span><span><span class="th">ย่อ</span><span class="en">Out</span></span></button>
+        <div class="zoom-readout" id="zoomReadout">100%</div>
+        <button onclick="zoomBy(1.3)"><span class="icon">+</span><span><span class="th">ขยาย</span><span class="en">In</span></span></button>
+        <button onclick="resetZoom()"><span class="icon">↺</span><span><span class="th">รีเซ็ต</span><span class="en">Reset</span></span></button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+  </div>
+</div>
+
+<!-- Hidden file inputs for camera capture (one per slot) -->
+<input type="file" id="fileInput" accept="image/*" capture="environment" class="photo-input">
+
+<script>
+  // ============================================================
+  // FACTORY 1 v2 — production-ready with prototype design
+  // GitHub-hosted: change APPS_SCRIPT_URL after deploying Code.gs
+  // ============================================================
+
+  const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+  function apiCall(action, params) {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
+      return Promise.reject(new Error('APPS_SCRIPT_URL is not set in index.html.'));
+    }
+    const payload = Object.assign({ action: action }, params || {});
+    return fetch(APPS_SCRIPT_URL, {
+      method: 'POST', mode: 'cors', cache: 'no-cache', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  // ===== AUTO-RETRY WRAPPER (for writes only) =====
+  // Wraps apiCall() with up to 3 attempts and 3s + 8s backoff. Network errors,
+  // HTTP errors, and server responses with "busy", "lock", "timeout" or "failed
+  // to fetch" in the message trigger a retry. Idempotency nonces in the existing
+  // upload functions mean a duplicate retry gets the cached server result —
+  // safe against double-saves.
+  //
+  // Loading state is set BEFORE this call and cleared AFTER its final outcome,
+  // so retries are invisible to the officer — they only see the final result.
+  function apiCallWithRetry(action, params, opts) {
+    opts = opts || {};
+    var maxAttempts = opts.maxAttempts || 3;
+    var delays = opts.delays || [3000, 8000];
+    var attempt = 0;
+    function shouldRetry(msg) {
+      if (!msg) return false;
+      var lower = String(msg).toLowerCase();
+      return lower.indexOf('busy') >= 0 ||
+             lower.indexOf('lock') >= 0 ||
+             lower.indexOf('timeout') >= 0 ||
+             lower.indexOf('failed to fetch') >= 0 ||
+             lower.indexOf('network') >= 0;
+    }
+    function wait(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+    function tryOnce() {
+      attempt++;
+      return apiCall(action, params).then(function(result) {
+        if (result && result.success === false && shouldRetry(result.message) && attempt < maxAttempts) {
+          console.log('apiCallWithRetry: retrying ' + action + ' (attempt ' + (attempt+1) + ') after server said: ' + result.message);
+          return wait(delays[attempt - 1] || 5000).then(tryOnce);
+        }
+        return result;
+      }).catch(function(err) {
+        if (attempt < maxAttempts) {
+          console.log('apiCallWithRetry: retrying ' + action + ' (attempt ' + (attempt+1) + ') after error: ' + err);
+          return wait(delays[attempt - 1] || 5000).then(tryOnce);
+        }
+        throw err;
+      });
+    }
+    return tryOnce();
+  }
+
+
+  // ============ STATE ============
+  const state = {
+    lang: 'en',
+    staffId: null, staffName: '', staffDept: '',
+    config: { productTypes: [], processingTypes: [], sizes: [] },
+    step12Type: 1,
+    step12Order: { name:'', step1Count:0, step2Count:0, originalMonth:'', originalYear:'' },
+    step12ItemNum: 1,
+    photos12: {1:null,2:null,3:null,4:null,5:null,6:null,7:null,8:null},
+    customProd:false, customProc:false, customSize:false,
+    isIMLayout:false,
+    step3Order: { name:'', lines:[], status:'new' },
+    linePhotos: [null,null,null],
+    recentOrders3: [],
+    containerSaved: 0,
+    containerNonces: {},
+    containerPhotoData: {},
+    containerPending: {},
+    step12UploadNonce: null,
+    step3LineNonce: null,
+    gmContainerSlot: -1,
+  };
+
+  // ============ LANGUAGE ============
+  function setLang(lang){
+    state.lang = lang;
+    document.body.classList.remove('lang-th','lang-en');
+    document.body.classList.add('lang-'+lang);
+    document.querySelectorAll('.lang-tab button').forEach(b => b.classList.toggle('active', b.dataset.l === lang));
+  }
+
+  // ============ SCREEN FLOW ============
+  function showScreen(id){
+    const current = document.querySelector('.screen:not(.hidden):not(.exiting)');
+    const next = document.getElementById(id);
+    if (current === next) return;
+    if (current) {
+      current.classList.add('exiting');
+      setTimeout(() => { current.classList.add('hidden'); current.classList.remove('exiting'); }, 380);
+    }
+    setTimeout(() => { next.classList.remove('hidden','exiting'); }, 30);
+  }
+  function signOut(){
+    state.staffId = null; state.staffName = ''; state.staffDept = '';
+    document.getElementById('staffIdInput').value = '';
+    document.querySelectorAll('#otpRow .otp-cell').forEach((c,i) => {
+      c.textContent = ''; c.classList.remove('filled'); c.classList.toggle('active', i === 0);
+    });
+    document.getElementById('loginBtn').disabled = true;
+    document.getElementById('staffIdError').style.display = 'none';
+    showScreen('screen-staffId');
+  }
+
+  // ============ NETWORK ============
+  function updateNet(online){
+    document.querySelectorAll('.net-dot').forEach(d => {
+      d.classList.toggle('online', online);
+      d.classList.toggle('offline', !online);
+      d.textContent = online ? 'Online' : 'Offline';
+    });
+  }
+  window.addEventListener('online',  () => updateNet(true));
+  window.addEventListener('offline', () => updateNet(false));
+
+  // ============ EMERGENCY CLOSE ============
+  function showEmergencyClose(){ const b = document.getElementById('emergencyClose'); b.classList.add('show'); syncEmergencyClose(); }
+  function hideEmergencyClose(){ document.getElementById('emergencyClose').classList.remove('show'); }
+  function syncEmergencyClose(){
+    const btn = document.getElementById('emergencyClose');
+    const vv = window.visualViewport;
+    if (vv) {
+      btn.style.top  = (Math.round(vv.offsetTop) + 12) + 'px';
+      btn.style.left = (Math.round(vv.offsetLeft) + 12) + 'px';
+      const scale = 1 / Math.max(vv.scale || 1, 1);
+      btn.style.transform = 'scale(' + scale + ')';
+    }
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncEmergencyClose);
+    window.visualViewport.addEventListener('scroll', syncEmergencyClose);
+  }
+  function closeAllPreviews(){
+    closePreview();
+    closeGMRevertModal();
+    closeGMContainerModal();
+    hideEmergencyClose();
+  }
+
+  // ============ LOGIN ============
+  const otpInput = document.getElementById('staffIdInput');
+  const otpCells = document.querySelectorAll('#otpRow .otp-cell');
+  document.getElementById('otpRow').addEventListener('click', () => otpInput.focus());
+  otpInput.addEventListener('input', (e) => {
+    const v = e.target.value.replace(/\D/g,'').slice(0,7);
+    e.target.value = v;
+    otpCells.forEach((c,i) => {
+      c.textContent = v[i] || '';
+      c.classList.toggle('filled', !!v[i]);
+      c.classList.toggle('active', i === v.length && v.length < 7);
+    });
+    document.getElementById('loginBtn').disabled = v.length !== 7;
+    document.getElementById('staffIdError').style.display = 'none';
+  });
+  otpInput.focus();
+  document.getElementById('loginBtn').addEventListener('click', enterStaffId);
+
+  function enterStaffId(){
+    const val = otpInput.value.trim();
+    if (!/^\d{7}$/.test(val)) {
+      showStatusMsg('staffIdError', state.lang === 'th' ? 'กรุณากรอกรหัส 7 หลัก' : 'Enter exactly 7 digits', 'error');
+      return;
+    }
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> <span class="en">Signing in...</span><span class="th">กำลังตรวจสอบ...</span>';
+    apiCall('validateStaff', { staffId: val })
+      .then(result => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="th">เข้าสู่ระบบ</span><span class="en">Continue</span>';
+        if (result && result.valid) {
+          state.staffId = val;
+          state.staffName = result.name || '';
+          state.staffDept = result.department || '';
+          updateStaffBanner();
+          loadConfig();
+          showScreen('screen-stepSelect');
+        } else {
+          showStatusMsg('staffIdError', (result && result.message) || (state.lang === 'th' ? 'รหัสผิด' : 'Invalid ID'), 'error');
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="th">เข้าสู่ระบบ</span><span class="en">Continue</span>';
+        showStatusMsg('staffIdError', '❌ ' + err.message, 'error');
+      });
+  }
+
+  function updateStaffBanner(){
+    const initials = state.staffName.split(/\s+/).map(s => s[0]||'').join('').slice(0,2).toUpperCase() || '··';
+    document.getElementById('staffAvatar').textContent = initials;
+    document.getElementById('staffNameDisplay').textContent = state.staffName || 'Staff';
+    document.getElementById('staffMetaDisplay').textContent = 'ID ' + state.staffId + (state.staffDept ? ' · ' + state.staffDept : '');
+  }
+
+  // ============ CONFIG ============
+  function loadConfig(){
+    apiCall('getConfig', {})
+      .then(cfg => {
+        state.config = cfg;
+        buildProductList(cfg.productTypes);
+        buildProcList(cfg.processingTypes);
+        buildSizeList(cfg.sizes);
+      })
+      .catch(err => showToast('❌ Config load failed: ' + err.message, 'error'));
+  }
+
+  // ============ STEP SELECT ============
+  function selectStep(step){
+    if (step === 1 || step === 2) {
+      state.step12Type = step;
+      document.getElementById('step12Title').textContent = step === 1 ? 'Step 1 · Packing' : 'Step 2 · Cold Storage QC';
+      document.getElementById('step12-orderEntry').style.display = '';
+      document.getElementById('step12OrderActions').style.display = '';
+      document.getElementById('step12-itemForm').style.display = 'none';
+      document.getElementById('step12ItemActions').style.display = 'none';
+      document.getElementById('step12OrderInput').value = '';
+      resetOrderBtn12();
+      showScreen('screen-step12');
+    } else if (step === 3) {
+      document.getElementById('step3-orderEntry').style.display = '';
+      document.getElementById('step3OrderActions').style.display = '';
+      document.getElementById('step3-tabs').style.display = 'none';
+      document.getElementById('step3TabsActions').style.display = 'none';
+      document.getElementById('step3OrderInput').value = '';
+      resetOrderBtn3();
+      showScreen('screen-step3');
+      apiCall('getRecentStep3Orders', {})
+        .then(populateRecentChips)
+        .catch(() => populateRecentChips([]));
+    }
+  }
+
+  function populateRecentChips(orders){
+    state.recentOrders3 = orders || [];
+    const row = document.getElementById('step3RecentChips');
+    row.innerHTML = '';
+    if (!orders || orders.length === 0 || (orders[0] && orders[0]._error)) {
+      const empty = document.createElement('div');
+      empty.className = 'chip empty-state';
+      empty.innerHTML = state.lang === 'th' ? 'ยังไม่มี Order ล่าสุด' : 'No recent orders';
+      row.appendChild(empty);
+      return;
+    }
+    orders.forEach(o => {
+      const c = document.createElement('button');
+      c.className = 'chip recent';
+      c.innerHTML = '🔄 ' + o.name;
+      c.onclick = () => { document.getElementById('step3OrderInput').value = o.name; checkOrderStep3Input(); };
+      row.appendChild(c);
+    });
+  }
+
+  // ============ STEP 1/2 ORDER ENTRY ============
+  function validateOrderName(name){
+    return /^[A-Z]{3}-\d{1,2}\/[A-Z]$/.test(name) || /^IM\/[A-Z]{3}\d{3}$/.test(name);
+  }
+  function resetOrderBtn12(){
+    document.getElementById('step12StartBtn').disabled = true;
+    document.getElementById('step12StartBtn').style.display = '';
+    document.getElementById('step12ContinueBtn').disabled = true;
+    document.getElementById('step12ContinueBtn').style.display = 'none';
+    document.getElementById('step12OrderStatus').style.display = 'none';
+  }
+  function checkOrderStep12Input(){
+    const name = document.getElementById('step12OrderInput').value.trim().toUpperCase();
+    if (!name) { showStatusMsg('step12OrderStatus', state.lang==='th'?'กรุณากรอก Order':'Enter an Order', 'error'); return; }
+    if (!validateOrderName(name)) {
+      showStatusMsg('step12OrderStatus', state.lang==='th'?'❌ รูปแบบ Order ไม่ถูกต้อง — ตัวอย่าง: ABT-1/A หรือ IM/ABT014':'❌ Invalid format — example: ABT-1/A or IM/ABT014', 'error');
+      return;
+    }
+    showStatusMsg('step12OrderStatus', state.lang==='th'?'กำลังตรวจสอบ...':'Checking...', 'loading');
+    apiCall('checkOrderStep12', { orderName: name })
+      .then(result => {
+        if (result && result.locked) {
+          showStatusMsg('step12OrderStatus', state.lang==='th'?'🔒 Order นี้เสร็จสิ้นแล้ว (Step 3) — GM ต้องยกเลิกสถานะก่อน':'🔒 Order completed in Loading — GM must revert first', 'error');
+          return;
+        }
+        window._step12CheckResult = result;
+        window._step12CheckName = name;
+        const startBtn = document.getElementById('step12StartBtn');
+        const contBtn = document.getElementById('step12ContinueBtn');
+        if (result && result.exists) {
+          startBtn.style.display = 'none';
+          contBtn.style.display = '';
+          contBtn.disabled = false;
+          const itemNum = (state.step12Type === 1 ? result.step1Count : result.step2Count) + 1;
+          showStatusMsg('step12OrderStatus', state.lang==='th'?('✓ Order มีอยู่แล้ว · Item ถัดไป #' + itemNum):('✓ Order exists · next item #' + itemNum), 'success');
+        } else {
+          contBtn.style.display = 'none';
+          startBtn.style.display = '';
+          startBtn.disabled = false;
+          showStatusMsg('step12OrderStatus', state.lang==='th'?'✓ Order ใหม่ — เริ่ม Item #1':'✓ New order — ready for Item #1', 'success');
+        }
+      })
+      .catch(err => showStatusMsg('step12OrderStatus', '❌ ' + err.message, 'error'));
+  }
+  function startStep12(){
+    const name = document.getElementById('step12OrderInput').value.trim().toUpperCase();
+    if (!name) return;
+    const result = window._step12CheckResult;
+    if (!result || window._step12CheckName !== name) { checkOrderStep12Input(); return; }
+    state.step12Order = { name: name, step1Count: result.step1Count||0, step2Count: result.step2Count||0, originalMonth: result.originalMonth||'', originalYear: result.originalYear||'' };
+    state.step12ItemNum = (state.step12Type === 1 ? state.step12Order.step1Count : state.step12Order.step2Count) + 1;
+    document.getElementById('step12OrderBadge').textContent = name;
+    document.getElementById('step12ItemNum').textContent = state.step12ItemNum;
+    document.getElementById('step12-orderEntry').style.display = 'none';
+    document.getElementById('step12OrderActions').style.display = 'none';
+    document.getElementById('step12-itemForm').style.display = '';
+    document.getElementById('step12ItemActions').style.display = '';
+    resetStep12Form();
+    buildPhotoGrid12();
+    if (isIMStep2()) applyIMPhotoLayout(); else resetPhotoLayout();
+    if (state.step12Type === 2) applyStep2PhotoLabels(); else resetStep1PhotoLabels();
+  }
+
+  function goBackStep12(){
+    if (document.getElementById('step12-itemForm').style.display !== 'none') {
+      document.getElementById('step12-itemForm').style.display = 'none';
+      document.getElementById('step12ItemActions').style.display = 'none';
+      document.getElementById('step12-orderEntry').style.display = '';
+      document.getElementById('step12OrderActions').style.display = '';
+      resetOrderBtn12();
+    } else {
+      showScreen('screen-stepSelect');
+    }
+  }
+
+  // ============ PRODUCT / PROC / SIZE LISTS ============
+  function buildProductList(types){
+    const list = document.getElementById('step12ProductList');
+    list.innerHTML = '';
+    types.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'select-menu-item';
+      item.textContent = t;
+      item.dataset.value = t;
+      item.onclick = () => pickProduct(t);
+      list.appendChild(item);
+    });
+  }
+  function pickProduct(val){
+    if (val === 'OTHER') {
+      state.customProd = true;
+      document.getElementById('step12CustomProductBox').style.display = '';
+      document.getElementById('step12ProductValueLabel').textContent = 'OTHER';
+      document.getElementById('step12ProductValueLabel').classList.remove('placeholder');
+    } else {
+      state.customProd = false;
+      document.getElementById('step12CustomProductBox').style.display = 'none';
+      document.getElementById('step12ProductValueLabel').textContent = val;
+      document.getElementById('step12ProductValueLabel').classList.remove('placeholder');
+    }
+    closeAllSelects();
+  }
+  function filterProducts12(term){
+    const upper = (term||'').toUpperCase();
+    document.querySelectorAll('#step12ProductList .select-menu-item').forEach(el => {
+      el.style.display = !upper || el.textContent.includes(upper) ? '' : 'none';
+    });
+  }
+  function buildProcList(types){
+    const list = document.getElementById('step12ProcList');
+    list.innerHTML = '';
+    types.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'select-menu-item';
+      item.textContent = t;
+      item.onclick = () => pickProc(t);
+      list.appendChild(item);
+    });
+  }
+  function pickProc(val){
+    if (val === 'Other') {
+      state.customProc = true;
+      document.getElementById('step12CustomProcBox').style.display = '';
+      document.getElementById('step12ProcValueLabel').textContent = 'Other';
+    } else {
+      state.customProc = false;
+      document.getElementById('step12CustomProcBox').style.display = 'none';
+      document.getElementById('step12ProcValueLabel').textContent = val;
+    }
+    document.getElementById('step12ProcValueLabel').classList.remove('placeholder');
+    closeAllSelects();
+  }
+  function buildSizeList(types){
+    const list = document.getElementById('step12SizeList');
+    list.innerHTML = '';
+    types.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'select-menu-item';
+      item.textContent = t;
+      item.onclick = () => pickSize(t);
+      list.appendChild(item);
+    });
+  }
+  function pickSize(val){
+    if (val === 'OTHER') {
+      state.customSize = true;
+      document.getElementById('step12CustomSizeBox').style.display = '';
+      document.getElementById('step12SizeValueLabel').textContent = 'OTHER';
+    } else {
+      state.customSize = false;
+      document.getElementById('step12CustomSizeBox').style.display = 'none';
+      document.getElementById('step12SizeValueLabel').textContent = val;
+    }
+    document.getElementById('step12SizeValueLabel').classList.remove('placeholder');
+    closeAllSelects();
+  }
+
+  // ============ PHOTO GRID (Step 1/2) ============
+  function step12PhotoLabels(){
+    // Factory 2: same labels for Step 1 and Step 2
+    return [
+      { th:'รูปปลา', en:'Fish photo', req:true },
+      { th:'ฉลากอินเนอร์', en:'Inner label', req:true },
+      { th:'รูปปลา + ฉลาก', en:'Fish + label', req:true },
+      { th:'ถุงบรรจุ', en:'Packaging bag', req:true },
+      { th:'กล่อง + ฉลาก', en:'Box + label', req:true },
+      { th:'รหัสกล่อง', en:'Box barcode', req:true },
+      { th:'ปั้มกระสอบ', en:'Sack stamp', req:false },
+      { th:'กระสอบ + ฉลาก', en:'Sack + label', req:false }
+    ];
+  }
+  function buildPhotoGrid12(){
+    const grid = document.getElementById('step12PhotoGrid');
+    grid.innerHTML = '';
+    const labels = step12PhotoLabels();
+    labels.forEach((lab, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'photo-slot' + (lab.req ? '' : ' optional');
+      slot.id = 'p12slot' + (i+1);
+      slot.onclick = () => triggerCapture12(i+1);
+      slot.innerHTML =
+        '<div class="slot-num">' + String(i+1).padStart(2,'0') + (lab.req?'':' OPT') + '</div>' +
+        '<div class="slot-cam">📷</div>' +
+        '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>';
+      grid.appendChild(slot);
+    });
+    updatePhotoProgress12();
+  }
+  function isIMStep2(){ return state.step12Type === 2 && state.step12Order.name && state.step12Order.name.startsWith('IM'); }
+  function applyIMPhotoLayout(){
+    state.isIMLayout = true;
+    const s4 = document.getElementById('p12slot4'); if (s4) s4.classList.add('hidden-slot');
+    const s6 = document.getElementById('p12slot6'); if (s6) s6.classList.add('hidden-slot');
+    const s7 = document.getElementById('p12slot7'); if (s7) { s7.classList.remove('optional'); s7.querySelector('.slot-num').textContent = '07'; }
+    const s8 = document.getElementById('p12slot8'); if (s8) { s8.classList.remove('optional'); s8.querySelector('.slot-num').textContent = '08'; }
+    updatePhotoProgress12();
+  }
+  function resetPhotoLayout(){
+    state.isIMLayout = false;
+    ['4','6'].forEach(n => { const s = document.getElementById('p12slot'+n); if (s) s.classList.remove('hidden-slot'); });
+    const s7 = document.getElementById('p12slot7'); if (s7) { s7.classList.add('optional'); s7.querySelector('.slot-num').textContent = '07 OPT'; }
+    const s8 = document.getElementById('p12slot8'); if (s8) { s8.classList.add('optional'); s8.querySelector('.slot-num').textContent = '08 OPT'; }
+    updatePhotoProgress12();
+  }
+  function applyStep2PhotoLabels(){ buildPhotoGrid12(); }
+  function resetStep1PhotoLabels(){ buildPhotoGrid12(); }
+  function requiredPhotoIndices(){
+    if (state.isIMLayout) return [1,2,3,5,7,8];
+    return [1,2,3,4,5,6];
+  }
+  function updatePhotoProgress12(){
+    const req = requiredPhotoIndices();
+    const done = req.filter(n => state.photos12[n]).length;
+    document.getElementById('step12PhotoProgress').textContent = done + ' / ' + req.length + ' required';
+  }
+
+  const fileInputEl = document.getElementById('fileInput');
+  let pendingFileTarget = null;
+  function triggerCapture12(num){
+    if (state.photos12[num]) { openPreview(state.photos12[num], 'PHOTO ' + num); return; }
+    pendingFileTarget = { kind:'step12', num: num };
+    fileInputEl.value = '';
+    fileInputEl.click();
+  }
+  function triggerCaptureLine(idx){
+    if (state.linePhotos[idx]) { openPreview(state.linePhotos[idx], 'LINE PHOTO ' + (idx+1)); return; }
+    pendingFileTarget = { kind:'line', idx: idx };
+    fileInputEl.value = '';
+    fileInputEl.click();
+  }
+  function triggerCaptureContainer(slotIdx){
+    pendingFileTarget = { kind:'container', slot: slotIdx };
+    fileInputEl.value = '';
+    fileInputEl.click();
+  }
+  fileInputEl.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      compressImage(ev.target.result, compressed => {
+        if (pendingFileTarget.kind === 'step12') handlePhoto12Captured(pendingFileTarget.num, compressed);
+        else if (pendingFileTarget.kind === 'line') handlePhotoLineCaptured(pendingFileTarget.idx, compressed);
+        else if (pendingFileTarget.kind === 'container') handleContainerCaptured(pendingFileTarget.slot, compressed);
+      });
+    };
+    reader.readAsDataURL(f);
+  });
+  function compressImage(dataUrl, cb){
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const MAX = 1200;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h / w * MAX); w = MAX; }
+        else { w = Math.round(w / h * MAX); h = MAX; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.5));
+    };
+    img.src = dataUrl;
+  }
+  function handlePhoto12Captured(num, dataUrl){
+    state.photos12[num] = dataUrl;
+    const slot = document.getElementById('p12slot' + num);
+    slot.classList.add('captured');
+    slot.innerHTML =
+      '<img src="' + dataUrl + '" alt="">' +
+      '<div class="check-tag">✓</div>' +
+      '<div class="retake-overlay">' + (state.lang==='th'?'แตะเพื่อดู':'Tap to view') + '</div>';
+    slot.onclick = () => openPreview(dataUrl, 'PHOTO ' + num);
+    slot.ondblclick = () => retakePhoto12(num);
+    updatePhotoProgress12();
+  }
+  function retakePhoto12(num){
+    state.photos12[num] = null;
+    // Rebuild this slot
+    const slot = document.getElementById('p12slot' + num);
+    const labels = step12PhotoLabels();
+    const lab = labels[num-1];
+    slot.className = 'photo-slot' + (lab.req && !(state.isIMLayout && (num===4||num===6)) ? '' : ' optional');
+    if (state.isIMLayout && (num===4||num===6)) slot.classList.add('hidden-slot');
+    slot.innerHTML =
+      '<div class="slot-num">' + String(num).padStart(2,'0') + (lab.req?'':' OPT') + '</div>' +
+      '<div class="slot-cam">📷</div>' +
+      '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>';
+    slot.onclick = () => triggerCapture12(num);
+    updatePhotoProgress12();
+  }
+
+  function resetStep12Form(){
+    state.photos12 = {1:null,2:null,3:null,4:null,5:null,6:null,7:null,8:null};
+    document.getElementById('step12ProductValueLabel').textContent = state.lang==='th'?'เลือก...':'Select...';
+    document.getElementById('step12ProductValueLabel').classList.add('placeholder');
+    document.getElementById('step12ProcValueLabel').textContent = state.lang==='th'?'เลือก...':'Select...';
+    document.getElementById('step12ProcValueLabel').classList.add('placeholder');
+    document.getElementById('step12SizeValueLabel').textContent = state.lang==='th'?'เลือก...':'Select...';
+    document.getElementById('step12SizeValueLabel').classList.add('placeholder');
+    document.getElementById('step12CustomProductBox').style.display = 'none';
+    document.getElementById('step12CustomProcBox').style.display = 'none';
+    document.getElementById('step12CustomSizeBox').style.display = 'none';
+    document.getElementById('step12CustomProductInput').value = '';
+    document.getElementById('step12CustomProcInput').value = '';
+    document.getElementById('step12CustomSizeInput').value = '';
+    document.getElementById('step12Notes').value = '';
+    state.customProd = state.customProc = state.customSize = false;
+    state.step12UploadNonce = null;
+  }
+
+  // ============ SAVE STEP 1/2 ITEM ============
+  function generateNonce(){ return Math.random().toString(36).slice(2) + '_' + Date.now(); }
+  function saveStep12Item(){
+    if (!navigator.onLine) { showStatusMsg('step12ItemStatus', state.lang==='th'?'❌ ไม่มีอินเทอร์เน็ต':'❌ No internet', 'error'); return; }
+    const product = state.customProd ? document.getElementById('step12CustomProductInput').value.trim().toUpperCase() : document.getElementById('step12ProductValueLabel').textContent;
+    if (!product || product === 'Select...' || product === 'เลือก...') { showStatusMsg('step12ItemStatus', state.lang==='th'?'กรุณาเลือกประเภทสินค้า':'Select product type', 'error'); return; }
+    let processing = state.customProc ? document.getElementById('step12CustomProcInput').value.trim().toUpperCase() : document.getElementById('step12ProcValueLabel').textContent;
+    if (!processing || processing === 'Select...' || processing === 'เลือก...') { showStatusMsg('step12ItemStatus', state.lang==='th'?'กรุณาเลือกการแปรรูป':'Select processing', 'error'); return; }
+    let size = state.customSize ? document.getElementById('step12CustomSizeInput').value.trim().toUpperCase() : document.getElementById('step12SizeValueLabel').textContent;
+    if (!size || size === 'Select...' || size === 'เลือก...') { showStatusMsg('step12ItemStatus', state.lang==='th'?'กรุณาเลือกขนาด':'Select size', 'error'); return; }
+
+    const req = requiredPhotoIndices();
+    for (const n of req) {
+      if (!state.photos12[n]) { showStatusMsg('step12ItemStatus', state.lang==='th'?'กรุณาถ่ายรูปที่ '+n:'Capture photo '+n, 'error'); return; }
+    }
+
+    const btn = document.getElementById('step12SaveBtn');
+    btn.disabled = true;
+    if (!state.step12UploadNonce) state.step12UploadNonce = generateNonce();
+
+    const photoCount = Object.values(state.photos12).filter(Boolean).length;
+    showStatusMsg('step12ItemStatus', (state.lang==='th'?'กำลังอัพโหลด ':'Uploading ') + photoCount + (state.lang==='th'?' รูป...':' photos...'), 'loading');
+
+    const formData = {
+      orderName: state.step12Order.name, step: state.step12Type,
+      productType: product, processingType: processing, size: size,
+      staffId: state.staffId, staffName: state.staffName,
+      notes: document.getElementById('step12Notes').value.trim(),
+      itemNumber: state.step12ItemNum, clientNonce: state.step12UploadNonce,
+      photo1: state.photos12[1]||'', photo2: state.photos12[2]||'', photo3: state.photos12[3]||'',
+      photo4: state.photos12[4]||'', photo5: state.photos12[5]||'', photo6: state.photos12[6]||'',
+      photo7: state.photos12[7]||'', photo8: state.photos12[8]||''
+    };
+
+    const timer = setTimeout(() => { btn.disabled = false; showStatusMsg('step12ItemStatus', state.lang==='th'?'⚠ หมดเวลา — กรุณาตรวจสอบ Google Sheet':'⚠ Timeout — please check Google Sheet', 'error'); }, 90000);
+
+    apiCallWithRetry('uploadItemStep12', formData)
+      .then(result => {
+        clearTimeout(timer); btn.disabled = false;
+        if (result && result.success) {
+          state.step12UploadNonce = null;
+          showStatusMsg('step12ItemStatus', result.message, 'success');
+          state.step12ItemNum = result.nextItemNumber;
+          document.getElementById('step12ItemNum').textContent = state.step12ItemNum;
+          setTimeout(() => {
+            resetStep12Form();
+            buildPhotoGrid12();
+            if (isIMStep2()) applyIMPhotoLayout(); else resetPhotoLayout();
+            document.getElementById('step12ItemStatus').style.display = 'none';
+          }, 1600);
+        } else {
+          showStatusMsg('step12ItemStatus', (result && result.message) || (state.lang==='th'?'❌ บันทึกไม่สำเร็จ':'❌ Save failed'), 'error');
+        }
+      })
+      .catch(err => {
+        clearTimeout(timer); btn.disabled = false;
+        showStatusMsg('step12ItemStatus', '❌ ' + err.message + (state.lang==='th'?'\n⚠ ข้อมูลยังไม่ถูกบันทึก':'\n⚠ Not saved'), 'error');
+      });
+  }
+
+  // ============ STEP 3 ORDER ENTRY ============
+  function resetOrderBtn3(){
+    document.getElementById('step3StartBtn').disabled = true;
+    document.getElementById('step3StartBtn').style.display = '';
+    document.getElementById('step3ContinueBtn').disabled = true;
+    document.getElementById('step3ContinueBtn').style.display = 'none';
+    document.getElementById('step3OrderStatus').style.display = 'none';
+  }
+  function checkOrderStep3Input(){
+    const name = document.getElementById('step3OrderInput').value.trim().toUpperCase();
+    if (!name) { showStatusMsg('step3OrderStatus', state.lang==='th'?'กรุณากรอก Order':'Enter an Order', 'error'); return; }
+    if (!validateOrderName(name)) { showStatusMsg('step3OrderStatus', state.lang==='th'?'❌ รูปแบบ Order ไม่ถูกต้อง':'❌ Invalid format', 'error'); return; }
+    showStatusMsg('step3OrderStatus', state.lang==='th'?'กำลังตรวจสอบ...':'Checking...', 'loading');
+    apiCall('checkOrderStep3', { orderName: name })
+      .then(result => {
+        window._step3CheckResult = result;
+        window._step3CheckName = name;
+        const startBtn = document.getElementById('step3StartBtn');
+        const contBtn = document.getElementById('step3ContinueBtn');
+        const isComplete = result && (result.status||'').toLowerCase() === 'complete';
+        if (result && (result.exists || (result.lines && result.lines.length > 0))) {
+          startBtn.style.display = 'none';
+          contBtn.style.display = ''; contBtn.disabled = false;
+          showStatusMsg('step3OrderStatus', isComplete ? (state.lang==='th'?'✓ Order เสร็จสิ้นแล้ว':'✓ Order is complete') : (state.lang==='th'?('✓ Order มีอยู่แล้ว · ' + (result.totalLines||0) + ' แถว'):('✓ Order exists · ' + (result.totalLines||0) + ' lines')), 'success');
+        } else {
+          contBtn.style.display = 'none';
+          startBtn.style.display = ''; startBtn.disabled = false;
+          showStatusMsg('step3OrderStatus', state.lang==='th'?'✓ Order ใหม่':'✓ New order', 'success');
+        }
+      })
+      .catch(err => showStatusMsg('step3OrderStatus', '❌ ' + err.message, 'error'));
+  }
+  function startStep3(){
+    const name = document.getElementById('step3OrderInput').value.trim().toUpperCase();
+    if (!name) return;
+    const result = window._step3CheckResult;
+    if (!result || window._step3CheckName !== name) { checkOrderStep3Input(); return; }
+    const isComplete = (result.status||'').toLowerCase() === 'complete';
+    state.step3Order = { name: name, lines: result.lines||[], status: result.status||'new' };
+
+    document.getElementById('step3OrderBadge').textContent = name;
+    document.getElementById('step3-orderEntry').style.display = 'none';
+    document.getElementById('step3OrderActions').style.display = 'none';
+    document.getElementById('step3-tabs').style.display = 'flex';
+    document.getElementById('step3TabsActions').style.display = '';
+    document.getElementById('step3CompletedBanner').style.display = isComplete ? '' : 'none';
+    document.getElementById('step3UploadSection').style.display = isComplete ? 'none' : '';
+    document.getElementById('step3GMRevertSection').style.display = isComplete ? '' : 'none';
+
+    buildLineSelector();
+    buildLineChips(state.step3Order.lines);
+    buildLinePhotoGrid();
+    loadContainerPhotos();
+    setupTabs();
+    updateLinesRing(state.step3Order.lines.length, 30);
+  }
+  function goBackStep3(){
+    if (document.getElementById('step3-tabs').style.display !== 'none') {
+      document.getElementById('step3-tabs').style.display = 'none';
+      document.getElementById('step3TabsActions').style.display = 'none';
+      document.getElementById('step3-orderEntry').style.display = '';
+      document.getElementById('step3OrderActions').style.display = '';
+      resetOrderBtn3();
+    } else {
+      showScreen('screen-stepSelect');
+    }
+  }
+
+  function buildLineSelector(){
+    const list = document.getElementById('step3LineList');
+    list.innerHTML = '';
+    const done = state.step3Order.lines.map(l => parseInt(l.lineNumber));
+    for (let i = 1; i <= 30; i++) {
+      const isDone = done.indexOf(i) > -1;
+      const item = document.createElement('div');
+      item.className = 'select-menu-item' + (isDone ? ' disabled' : '');
+      item.innerHTML = 'Line-' + i + (isDone ? ' <span class="pill">✓</span>' : '');
+      if (!isDone) item.onclick = () => pickLineNumber(i);
+      list.appendChild(item);
+    }
+  }
+  function pickLineNumber(n){
+    document.getElementById('step3LineValueLabel').textContent = 'Line-' + n;
+    document.getElementById('step3LineValueLabel').classList.remove('placeholder');
+    closeAllSelects();
+  }
+  function buildLineChips(lines){
+    const row = document.getElementById('step3LineChips');
+    row.innerHTML = '';
+    document.getElementById('linesBadge').textContent = lines.length;
+    document.getElementById('linesNum').textContent = lines.length;
+    if (lines.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'chip empty-state';
+      empty.innerHTML = state.lang==='th' ? 'ยังไม่มีแถวบันทึก' : 'No lines yet';
+      row.appendChild(empty);
+      return;
+    }
+    lines.forEach((l, idx) => {
+      const c = document.createElement('button');
+      c.className = 'chip';
+      c.style.animationDelay = (idx * 30) + 'ms';
+      c.innerHTML = '✓ Line-' + l.lineNumber + ' <span class="count">' + l.photosCount + '</span>';
+      c.onclick = () => openLineGallery(idx);
+      row.appendChild(c);
+    });
+  }
+  function buildLinePhotoGrid(){
+    const grid = document.getElementById('step3LinePhotoGrid');
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = '1fr 1fr 1fr';
+    state.linePhotos = [null, null, null];
+    for (let i = 0; i < 3; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'photo-slot' + (i > 0 ? ' optional' : '');
+      slot.id = 'p3slot' + i;
+      slot.onclick = () => triggerCaptureLine(i);
+      slot.innerHTML =
+        '<div class="slot-num">' + (i===0?'01':('0'+(i+1)+' OPT')) + '</div>' +
+        '<div class="slot-cam">📷</div>' +
+        '<div class="slot-label">' + (i===0?'<span class="th">บังคับ</span><span class="en">Required</span>':'<span class="th">ไม่บังคับ</span><span class="en">Optional</span>') + '</div>';
+      grid.appendChild(slot);
+    }
+  }
+  function handlePhotoLineCaptured(idx, dataUrl){
+    state.linePhotos[idx] = dataUrl;
+    const slot = document.getElementById('p3slot' + idx);
+    slot.classList.add('captured');
+    slot.innerHTML = '<img src="' + dataUrl + '" alt=""><div class="check-tag">✓</div>';
+    slot.onclick = () => openPreview(dataUrl, 'LINE PHOTO ' + (idx+1));
+  }
+
+  function refreshStep3Lines(){
+    if (!state.step3Order.name) return;
+    apiCall('checkOrderStep3', { orderName: state.step3Order.name })
+      .then(result => {
+        state.step3Order.lines = result.lines || [];
+        buildLineChips(state.step3Order.lines);
+        buildLineSelector();
+        updateLinesRing(state.step3Order.lines.length, 30);
+      });
+  }
+
+  function saveStep3Line(){
+    const lineLabel = document.getElementById('step3LineValueLabel').textContent;
+    const lineNum = parseInt(lineLabel.replace('Line-',''));
+    if (!lineNum) { showStatusMsg('step3LineStatus', state.lang==='th'?'กรุณาเลือกแถว':'Select a line', 'error'); return; }
+    if (!state.linePhotos[0]) { showStatusMsg('step3LineStatus', state.lang==='th'?'กรุณาถ่ายรูปอย่างน้อย 1 รูป':'Take at least 1 photo', 'error'); return; }
+    if (!navigator.onLine) { showStatusMsg('step3LineStatus', state.lang==='th'?'❌ ไม่มีอินเทอร์เน็ต':'❌ No internet', 'error'); return; }
+    const btn = document.getElementById('step3SaveLineBtn');
+    btn.disabled = true;
+    if (!state.step3LineNonce) state.step3LineNonce = generateNonce();
+    const photoCount = state.linePhotos.filter(Boolean).length;
+    showStatusMsg('step3LineStatus', state.lang==='th'?('กำลังอัพโหลด ' + photoCount + ' รูป...'):('Uploading ' + photoCount + ' photos...'), 'loading');
+    const timer = setTimeout(() => { btn.disabled = false; showStatusMsg('step3LineStatus', state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout', 'error'); }, 60000);
+    apiCallWithRetry('uploadLineStep3', {
+      orderName: state.step3Order.name, lineNumber: lineNum,
+      staffId: state.staffId, staffName: state.staffName,
+      clientNonce: state.step3LineNonce,
+      photos: [state.linePhotos[0]||'', state.linePhotos[1]||'', state.linePhotos[2]||'']
+    })
+      .then(result => {
+        clearTimeout(timer); btn.disabled = false;
+        if (result && result.success) {
+          state.step3LineNonce = null;
+          showStatusMsg('step3LineStatus', result.message, 'success');
+          state.step3Order.lines.push({ lineNumber: lineNum, photosCount: photoCount, staffName: state.staffName, photos: state.linePhotos.filter(Boolean) });
+          buildLineChips(state.step3Order.lines);
+          buildLineSelector();
+          updateLinesRing(state.step3Order.lines.length, 30);
+          setTimeout(() => {
+            buildLinePhotoGrid();
+            document.getElementById('step3LineValueLabel').textContent = state.lang==='th'?'เลือกแถว...':'Select line...';
+            document.getElementById('step3LineValueLabel').classList.add('placeholder');
+            document.getElementById('step3LineStatus').style.display = 'none';
+          }, 1500);
+        } else {
+          showStatusMsg('step3LineStatus', (result && result.message) || (state.lang==='th'?'❌ บันทึกไม่สำเร็จ':'❌ Save failed'), 'error');
+        }
+      })
+      .catch(err => {
+        clearTimeout(timer); btn.disabled = false;
+        showStatusMsg('step3LineStatus', '❌ ' + err.message, 'error');
+      });
+  }
+
+  function updateLinesRing(curr, max){
+    const ring = document.getElementById('linesRing');
+    if (!ring) return;
+    const circ = 2 * Math.PI * 25;
+    ring.style.strokeDashoffset = circ * (1 - Math.min(curr, max) / max);
+  }
+  function updateContainerRing(curr){
+    const ring = document.getElementById('containerRing');
+    if (!ring) return;
+    const circ = 2 * Math.PI * 25;
+    ring.style.strokeDashoffset = circ * (1 - curr / 6);
+  }
+
+  // ============ CONTAINER PHOTOS ============
+  const CONTAINER_LABELS_TH = ['ตู้เปล่า','อุณหภูมิก่อนเปิดตู้','Temperature กลาง','Temperature ท้ายตู้','เลข Seal','รูปปิดตู้'];
+  const CONTAINER_LABELS_EN = ['Empty container','Temp before opening','Temp middle','Temp rear','Seal number','Container closed'];
+
+  function loadContainerPhotos(){
+    apiCall('getContainerPhotos', { orderName: state.step3Order.name })
+      .then(result => {
+        const photos = (result && result.photos) || new Array(6).fill('');
+        state.containerSaved = (result && result.savedCount) || 0;
+        buildContainerGrid(photos);
+      })
+      .catch(() => { state.containerSaved = 0; buildContainerGrid(new Array(6).fill('')); });
+  }
+  function buildContainerGrid(photos){
+    const grid = document.getElementById('step3ContainerGrid');
+    grid.innerHTML = '';
+    let saved = 0;
+    for (let i = 0; i < 6; i++) {
+      const url = photos[i] || '';
+      const isSaved = url.startsWith('http');
+      if (isSaved) saved++;
+      const slot = document.createElement('div');
+      slot.className = 'container-slot ' + (isSaved ? 'saved' : 'empty');
+      slot.id = 'cslot' + i;
+      slot.style.animationDelay = (i*60) + 'ms';
+      const thumb = isSaved ? toDriveThumb(url) : '';
+      slot.innerHTML =
+        '<div class="container-slot-head">' +
+          '<div class="container-slot-num">' + (i+1) + '</div>' +
+          '<div class="container-slot-name"><span class="th">'+CONTAINER_LABELS_TH[i]+'</span><span class="en">'+CONTAINER_LABELS_EN[i]+'</span></div>' +
+          '<div class="container-slot-status">' + (isSaved?'✓':'⬜') + '</div>' +
+          (isSaved ? '<button class="gm-mini" onclick="showGMContainerModal('+i+')">✏️</button>' : '') +
+        '</div>' +
+        '<div class="container-slot-body">' +
+          (isSaved
+            ? '<div class="container-thumb" onclick="openPreview(\''+url+'\',\''+CONTAINER_LABELS_EN[i].toUpperCase()+'\')"><img src="'+thumb+'" alt=""></div>'
+            : '<button onclick="triggerCaptureContainer('+i+')">📷 <span class="th">แตะเพื่อถ่ายรูป</span><span class="en">Tap to take photo</span></button>'
+          ) +
+        '</div>';
+      if (isSaved) state.containerPhotoData[i] = url;
+      grid.appendChild(slot);
+    }
+    state.containerSaved = saved;
+    document.getElementById('containerBadge').textContent = saved + '/6';
+    document.getElementById('containerNum').textContent = saved + '/6';
+    document.getElementById('containerBadge').classList.toggle('complete', saved === 6);
+    document.getElementById('containerBadge').classList.toggle('partial', saved > 0 && saved < 6);
+    updateContainerRing(saved);
+    document.getElementById('step3CompleteBtn').disabled = saved < 6;
+  }
+  function toDriveThumb(url){
+    const m = url.match(/[-\w]{25,}/);
+    return m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w800' : url;
+  }
+  function handleContainerCaptured(slotIdx, dataUrl){
+    state.containerPending[slotIdx] = dataUrl;
+    const slot = document.getElementById('cslot' + slotIdx);
+    slot.className = 'container-slot preview';
+    slot.querySelector('.container-slot-status').textContent = '👁️';
+    slot.querySelector('.container-slot-body').innerHTML =
+      '<div class="container-thumb" onclick="openPreview(\''+dataUrl+'\',\''+CONTAINER_LABELS_EN[slotIdx].toUpperCase()+'\')"><img src="'+dataUrl+'" alt=""></div>' +
+      '<div class="container-preview-actions">' +
+        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">💾 <span class="th">บันทึก</span><span class="en">Save</span></button>' +
+        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">🔄 <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
+      '</div>';
+  }
+  function retakeContainer(slotIdx){
+    delete state.containerPending[slotIdx];
+    loadContainerPhotos(); // resets the slot
+  }
+  function confirmContainerSave(slotIdx){
+    const data = state.containerPending[slotIdx];
+    if (!data) return;
+    const slot = document.getElementById('cslot' + slotIdx);
+    slot.className = 'container-slot saving';
+    slot.querySelector('.container-slot-status').textContent = '⏳';
+    slot.querySelector('.container-slot-body').innerHTML = '<div class="container-saving-msg"><div class="spinner spinner-dark"></div><span class="th">กำลังบันทึก...</span><span class="en">Saving...</span></div>';
+    if (!state.containerNonces[slotIdx]) state.containerNonces[slotIdx] = generateNonce();
+    const timer = setTimeout(() => containerSlotFailed(slotIdx, state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout'), 60000);
+    apiCallWithRetry('saveContainerPhoto', {
+      orderName: state.step3Order.name, slotIndex: slotIdx, photoData: data,
+      staffId: state.staffId, staffName: state.staffName,
+      clientNonce: state.containerNonces[slotIdx]
+    })
+      .then(result => {
+        clearTimeout(timer);
+        if (result && result.success) {
+          state.containerNonces[slotIdx] = null;
+          delete state.containerPending[slotIdx];
+          state.containerPhotoData[slotIdx] = data;
+          loadContainerPhotos();
+          showToast(result.message, 'success');
+        } else {
+          containerSlotFailed(slotIdx, (result && result.message) || '❌ Save failed');
+        }
+      })
+      .catch(err => { clearTimeout(timer); containerSlotFailed(slotIdx, '❌ ' + err.message); });
+  }
+  function containerSlotFailed(slotIdx, msg){
+    const slot = document.getElementById('cslot' + slotIdx);
+    slot.className = 'container-slot failed';
+    slot.querySelector('.container-slot-status').textContent = '❌';
+    slot.querySelector('.container-slot-body').innerHTML =
+      '<div class="container-error">' + msg + '</div>' +
+      '<div class="container-preview-actions">' +
+        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">🔄 <span class="th">ลองใหม่</span><span class="en">Retry</span></button>' +
+        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')"><span class="th">ถ่ายใหม่</span><span class="en">New photo</span></button>' +
+      '</div>';
+  }
+
+  // ============ COMPLETE STEP 3 ============
+  function completeStep3(){
+    if (state.containerSaved < 6) { showToast(state.lang==='th'?'⚠ ตู้สินค้ายังไม่ครบ 6 รูป':'⚠ Container photos not yet 6/6','error'); return; }
+    const total = state.step3Order.lines.length;
+    const msg = total < 5
+      ? (state.lang==='th'?('⚠ มีเพียง '+total+' แถว (น้อยกว่า 5)\nต้องการเสร็จสิ้น?'):('⚠ Only '+total+' lines (below 5)\nComplete anyway?'))
+      : (state.lang==='th'?('ยืนยันเสร็จสิ้น Order '+state.step3Order.name+'?\n'+total+' แถว'):('Confirm completing '+state.step3Order.name+'?\n'+total+' lines'));
+    if (!confirm(msg)) return;
+    const btn = document.getElementById('step3CompleteBtn');
+    btn.disabled = true;
+    showStatusMsg('step3LineStatus', state.lang==='th'?'กำลังปิด Order...':'Completing...', 'loading');
+    const timer = setTimeout(() => { btn.disabled = false; showStatusMsg('step3LineStatus', state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout', 'error'); }, 90000);
+    apiCallWithRetry('completeStep3Order', { orderName: state.step3Order.name, staffId: state.staffId, staffName: state.staffName })
+      .then(result => {
+        clearTimeout(timer); btn.disabled = false;
+        if (result && result.success) {
+          showStatusMsg('step3LineStatus', result.message, 'success');
+          state.step3Order.status = 'Complete';
+          document.getElementById('step3UploadSection').style.display = 'none';
+          document.getElementById('step3GMRevertSection').style.display = '';
+          document.getElementById('step3CompletedBanner').style.display = '';
+          setTimeout(() => goBackStep3(), 2200);
+        } else {
+          showStatusMsg('step3LineStatus', (result && result.message) || '❌ Complete failed', 'error');
+        }
+      })
+      .catch(err => { clearTimeout(timer); btn.disabled = false; showStatusMsg('step3LineStatus', '❌ ' + err.message, 'error'); });
+  }
+
+  // ============ GM MODALS ============
+  function showGMRevertModal(){ document.getElementById('gmRevertPassword').value=''; document.getElementById('gmRevertError').style.display='none'; document.getElementById('gmRevertModal').classList.add('open'); showEmergencyClose(); }
+  function closeGMRevertModal(){ document.getElementById('gmRevertModal').classList.remove('open'); if (!isAnyPreviewOpen()) hideEmergencyClose(); }
+  function submitGMRevert(){
+    const pw = document.getElementById('gmRevertPassword').value;
+    apiCall('revertStep3Order', { orderName: state.step3Order.name, password: pw })
+      .then(result => {
+        if (result && result.success) {
+          closeGMRevertModal();
+          showToast(result.message, 'success');
+          state.step3Order.status = 'In Progress';
+          document.getElementById('step3GMRevertSection').style.display = 'none';
+          document.getElementById('step3UploadSection').style.display = '';
+          document.getElementById('step3CompletedBanner').style.display = 'none';
+        } else {
+          showStatusMsg('gmRevertError', (result && result.message) || 'Incorrect', 'error');
+        }
+      })
+      .catch(err => showStatusMsg('gmRevertError', '❌ ' + err.message, 'error'));
+  }
+
+  function showGMContainerModal(slot){ state.gmContainerSlot = slot; document.getElementById('gmContainerPassword').value=''; document.getElementById('gmContainerError').style.display='none'; document.getElementById('gmContainerModal').classList.add('open'); showEmergencyClose(); }
+  function closeGMContainerModal(){ document.getElementById('gmContainerModal').classList.remove('open'); state.gmContainerSlot = -1; if (!isAnyPreviewOpen()) hideEmergencyClose(); }
+  function submitGMContainerUnlock(){
+    const pw = document.getElementById('gmContainerPassword').value;
+    const slot = state.gmContainerSlot;
+    apiCall('verifyGMPassword', { password: pw })
+      .then(result => {
+        if (result && result.valid && slot >= 0) {
+          closeGMContainerModal();
+          const s = document.getElementById('cslot' + slot);
+          s.className = 'container-slot empty';
+          s.querySelector('.container-slot-status').textContent = '⬜';
+          s.querySelector('.container-slot-body').innerHTML = '<button onclick="triggerCaptureContainer('+slot+')">📷 <span class="th">แตะเพื่อถ่ายรูป</span><span class="en">Tap to take photo</span></button>';
+          // Recompute saved count
+          let saved = 0;
+          document.querySelectorAll('.container-slot.saved').forEach(() => saved++);
+          state.containerSaved = saved;
+          document.getElementById('containerBadge').textContent = saved + '/6';
+          document.getElementById('containerNum').textContent = saved + '/6';
+          updateContainerRing(saved);
+          document.getElementById('step3CompleteBtn').disabled = saved < 6;
+        } else {
+          showStatusMsg('gmContainerError', state.lang==='th'?'❌ รหัสผ่านไม่ถูกต้อง':'❌ Wrong password', 'error');
+        }
+      })
+      .catch(err => showStatusMsg('gmContainerError', '❌ ' + err.message, 'error'));
+  }
+  function isAnyPreviewOpen(){
+    return document.getElementById('previewModal').classList.contains('open') ||
+           document.getElementById('gmRevertModal').classList.contains('open') ||
+           document.getElementById('gmContainerModal').classList.contains('open');
+  }
+
+  // ============ SELECT DROPDOWNS ============
+  function toggleSelect(id){
+    const wasOpen = document.getElementById(id).classList.contains('open');
+    closeAllSelects();
+    if (!wasOpen) document.getElementById(id).classList.add('open');
+  }
+  function closeAllSelects(){ document.querySelectorAll('.select-block.open').forEach(b => b.classList.remove('open')); }
+  document.addEventListener('click', (e) => { if (!e.target.closest('.select-block')) closeAllSelects(); });
+
+  // ============ TABS ============
+  function setupTabs(){
+    const btns = document.querySelectorAll('#step3Tabs .tab-btn');
+    const indicator = document.getElementById('tabIndicator');
+    function updateIndicator(btn){
+      const r = btn.getBoundingClientRect();
+      const pr = btn.parentElement.getBoundingClientRect();
+      indicator.style.left = (r.left - pr.left) + 'px';
+      indicator.style.width = r.width + 'px';
+    }
+    btns.forEach(b => {
+      b.onclick = () => {
+        btns.forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        updateIndicator(b);
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab' + b.dataset.tab.charAt(0).toUpperCase() + b.dataset.tab.slice(1)).classList.add('active');
+      };
+    });
+    requestAnimationFrame(() => updateIndicator(btns[0]));
+  }
+
+  // ============ PHOTO PREVIEW ============
+  let zoomScale = 1;
+  function openPreview(src, label){
+    document.getElementById('previewImg').src = src;
+    document.getElementById('previewLabel').textContent = label || '';
+    document.getElementById('previewModal').classList.add('open');
+    zoomScale = 1; applyZoom();
+    showEmergencyClose();
+  }
+  function closePreview(){ document.getElementById('previewModal').classList.remove('open'); if (!isAnyPreviewOpen()) hideEmergencyClose(); }
+  function zoomBy(f){ zoomScale = Math.max(1, Math.min(6, zoomScale * f)); applyZoom(); }
+  function resetZoom(){ zoomScale = 1; applyZoom(); }
+  function applyZoom(){
+    document.getElementById('previewImg').style.transform = 'scale(' + zoomScale + ')';
+    document.getElementById('previewImg').style.transition = 'transform 200ms cubic-bezier(.22,1,.36,1)';
+    document.getElementById('zoomReadout').textContent = Math.round(zoomScale*100) + '%';
+  }
+  function openLineGallery(idx){
+    const line = state.step3Order.lines[idx];
+    if (!line || !line.photos || line.photos.length === 0) return;
+    const first = line.photos[0];
+    openPreview(toDriveThumb(first) || first, 'LINE-' + line.lineNumber);
+  }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllPreviews(); });
+
+  // ============ STATUS / TOAST ============
+  function showStatusMsg(id, msg, kind){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'status-msg ' + (kind || '');
+    if (kind === 'loading') el.innerHTML = '<div class="spinner spinner-dark"></div><span>' + msg + '</span>';
+    else el.textContent = msg;
+    el.style.display = 'flex';
+  }
+  let toastTimer;
+  function showToast(msg, kind){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (kind || '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // ============ INIT ============
+  updateNet(navigator.onLine);
+</script>
+</body>
+</html>
