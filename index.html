@@ -1905,12 +1905,23 @@
     const slot = document.getElementById('cslot' + slotIdx);
     slot.className = 'container-slot preview';
     slot.querySelector('.container-slot-status').textContent = '👁️';
-    slot.querySelector('.container-slot-body').innerHTML =
-      '<div class="container-thumb" onclick="openPreview(\''+dataUrl+'\',\''+CONTAINER_LABELS_EN[slotIdx].toUpperCase()+'\')"><img src="'+dataUrl+'" alt=""></div>' +
+    // BUG FIX: Do NOT embed dataUrl in an onclick HTML attribute string.
+    // Compressed base64 images are 100,000-400,000 chars long. Mobile browsers
+    // (especially iOS Safari) silently truncate long attribute values, which
+    // corrupts the JS string and makes the onclick do nothing -- causing
+    // the 'image appears but tapping does nothing / disappears' symptom.
+    // Fix: set innerHTML without onclick, then attach via a closure,
+    // the same pattern handlePhoto12Captured uses with slot.onclick = () => ...
+    const body = slot.querySelector('.container-slot-body');
+    body.innerHTML =
+      '<div class="container-thumb"><img src="'+dataUrl+'" alt=""></div>' +
       '<div class="container-preview-actions">' +
-        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">💾 <span class="th">บันทึก</span><span class="en">Save</span></button>' +
-        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">🔄 <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
+        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">&#x1F4BE; <span class="th">บันทึก</span><span class="en">Save</span></button>' +
+        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">&#x1F504; <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
       '</div>';
+    // Closure: dataUrl captured as a variable reference, never serialised into HTML.
+    body.querySelector('.container-thumb').onclick =
+      () => openPreview(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
   }
   function retakeContainer(slotIdx){
     delete state.containerPending[slotIdx];
