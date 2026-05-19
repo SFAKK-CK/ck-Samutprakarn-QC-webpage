@@ -909,10 +909,11 @@
             </div>
             <div class="info">
               <div class="info-title"><span class="th">รูปตู้สินค้า</span><span class="en">Container photos</span></div>
-              <div class="info-meta"><span class="th">บังคับครบ 6 รูปก่อนเสร็จสิ้น</span><span class="en">All 6 required to complete</span></div>
+              <div class="info-meta"><span class="th">แตะ slot ถ่ายรูป · แตะรูปเพื่อดูตัวอย่าง</span><span class="en">Tap slot to shoot · tap photo to preview</span></div>
             </div>
           </div>
-          <div class="container-grid" id="step3ContainerGrid"></div>
+          <div class="chips-row" id="containerChipsRow"></div>
+          <div class="photo-grid" id="step3ContainerGrid" style="grid-template-columns:1fr 1fr 1fr"></div>
           <div id="containerStatus" class="status-msg" style="display:none;margin-top:12px"></div>
         </div>
       </div>
@@ -920,6 +921,9 @@
       <div class="actionbar" id="step3TabsActions" style="display:none">
         <button class="btn btn-secondary" id="step3SaveLineBtn" onclick="saveStep3Line()">
           💾 <span class="th">บันทึกแถว</span><span class="en">Save line</span>
+        </button>
+        <button class="btn btn-secondary" id="step3SaveContainerBtn" onclick="saveContainerPhotos()" style="display:none" disabled>
+          💾 <span class="th">บันทึกตู้</span><span class="en">Save container</span>
         </button>
         <button class="btn btn-accent" id="step3CompleteBtn" onclick="completeStep3()" disabled>
           ✅ <span class="th">เสร็จสิ้น</span><span class="en">Complete</span>
@@ -980,16 +984,14 @@
 
 <script>
   // ============================================================
-  // FACTORY 2 (Samut Prakarn) v2.4 — production-ready
-  // v2.4: container photo full fix —
-  //       (1) 'photoData' renamed to 'photo' — backend field name mismatch was
-  //           silently rejecting every container upload
-  //       (2) auto-save on capture, no separate Save button tap needed
-  //       (3) thumbnail stays visible during saving AND on failure
-  //       (4) 'clientNonce' renamed to 'nonce' for proper deduplication
-  // v2.3: _reapplyPendingContainerSlots called immediately after
-  //       buildContainerGrid(empty); compressImage onerror fallback;
-  //       handleContainerCaptured null-safe.
+  // FACTORY 2 (Samut Prakarn) v2.5 — production-ready
+  // v2.5: container tab fully redesigned to match Line photo system.
+  //       - 6 fixed photo slots in photo-grid (2×3), all required.
+  //       - Tap slot → camera → thumbnail shows (tap thumbnail to preview).
+  //       - Single "Save container" button appears once all 6 captured.
+  //       - Sequential backend save (LockService safe), one slot at a time.
+  //       - After save: slots locked, tapping opens preview only.
+  //       - Chips row above grid shows locally-captured thumbnails.
   // GitHub-hosted: set APPS_SCRIPT_URL to your Factory 2 deployment URL.
   // ============================================================
 
@@ -1068,14 +1070,12 @@
     step3Order: { name:'', lines:[], status:'new' },
     linePhotos: [null,null,null],
     recentOrders3: [],
-    containerSaved: 0,
-    containerNonces: {},
-    containerPhotoData: {},
-    containerPending: {},
-    containerSaving: {},
+    containerPhotos: [null,null,null,null,null,null],
+    containerSaved: false,
+    containerSaveNonce: null,
+    gmContainerSlot: -1,
     step12UploadNonce: null,
     step3LineNonce: null,
-    gmContainerSlot: -1,
   };
 
   // ============ LANGUAGE ============
@@ -1489,6 +1489,7 @@
     fileInputEl.click();
   }
   function triggerCaptureContainer(slotIdx){
+    if (state.containerPhotos[slotIdx]) { openPreview(state.containerPhotos[slotIdx], CONTAINER_LABELS_EN[slotIdx].toUpperCase()); return; }
     pendingFileTarget = { kind:'container', slot: slotIdx };
     fileInputEl.value = '';
     fileInputEl.click();
@@ -1501,7 +1502,7 @@
       compressImage(ev.target.result, compressed => {
         if (pendingFileTarget.kind === 'step12') handlePhoto12Captured(pendingFileTarget.num, compressed);
         else if (pendingFileTarget.kind === 'line') handlePhotoLineCaptured(pendingFileTarget.idx, compressed);
-        else if (pendingFileTarget.kind === 'container') handleContainerCaptured(pendingFileTarget.slot, compressed);
+        else if (pendingFileTarget.kind === 'container') handleContainerPhotoCaptured(pendingFileTarget.slot, compressed);
       });
     };
     reader.readAsDataURL(f);
@@ -1855,225 +1856,173 @@
   const CONTAINER_LABELS_EN = ['Empty container','Temp before opening','Temp middle','Temp rear','Seal number','Container closed'];
 
   function loadContainerPhotos(){
-    // ROOT CAUSE FIX: Apps Script API calls take 3-15 seconds. During that
-    // time the user may already have captured a photo (handleContainerCaptured
-    // runs and shows the preview). When the API finally returns it calls
-    // buildContainerGrid() which wipes the entire grid — including the pending
-    // preview — back to empty, causing "image appears then disappears" and
-    // nothing being saved to Google Sheets because the Save button vanishes.
-    // Fix: after rebuilding from server data, re-apply any slots that are
-    // currently in state.containerPending (captured but not yet saved).
-    // v2.3 FIX: also re-apply IMMEDIATELY after the synchronous empty-grid
-    // render so pending previews are never invisible during the API round-trip.
     buildContainerGrid(new Array(6).fill(''));
-    _reapplyPendingContainerSlots();
     apiCall('getContainerPhotos', { orderName: state.step3Order.name })
       .then(result => {
         if (result && result._error) {
-          console.warn('getContainerPhotos returned error:', result.message);
           showStatusMsg('containerStatus', state.lang==='th'
             ? '⚠ ดึงรูปตู้สินค้าไม่ได้: ' + result.message
             : '⚠ Could not load container photos: ' + result.message, 'error');
-          // Even on error, re-apply any pending previews
-          _reapplyPendingContainerSlots();
           return;
         }
         const photos = (result && Array.isArray(result.photos)) ? result.photos : new Array(6).fill('');
         while (photos.length < 6) photos.push('');
-        state.containerSaved = (result && result.savedCount) || 0;
         buildContainerGrid(photos);
-        // Re-apply any photos captured but not yet saved to the server.
-        // Without this, the API response wipes in-progress previews.
-        _reapplyPendingContainerSlots();
-        console.log('loadContainerPhotos: rebuilt with', state.containerSaved, '/6 saved');
       })
       .catch(err => {
         console.warn('loadContainerPhotos failed:', err);
-        state.containerSaved = 0;
         buildContainerGrid(new Array(6).fill(''));
-        _reapplyPendingContainerSlots();
-        showStatusMsg('containerStatus', state.lang==='th'
-          ? '⚠ โหลดรูปตู้ไม่สำเร็จ: ' + err.message
-          : '⚠ Failed to load container photos: ' + err.message, 'error');
       });
   }
-  // Re-applies any container slot previews that are in state.containerPending
-  // (captured but not yet saved). Called after every buildContainerGrid so
-  // the API response never silently discards an in-progress capture.
-  function _reapplyPendingContainerSlots(){
-    Object.keys(state.containerPending).forEach(function(key){
-      var idx = parseInt(key, 10);
-      if (!isNaN(idx) && state.containerPending[idx]) {
-        if (state.containerSaving[idx]) {
-          // Save already in flight — restore the saving spinner (not preview buttons)
-          _showContainerSaving(idx, state.containerPending[idx]);
-        } else {
-          // Photo captured, not yet saved — restore preview with Save / Retake
-          _showContainerPreview(idx, state.containerPending[idx]);
-        }
-      }
-    });
-  }
-  function buildContainerGrid(photos){
+
+  function buildContainerGrid(serverPhotos){
     const grid = document.getElementById('step3ContainerGrid');
     grid.innerHTML = '';
-    let saved = 0;
+    let serverSavedCount = 0;
     for (let i = 0; i < 6; i++) {
-      const url = photos[i] || '';
-      const isSaved = url.startsWith('http');
-      if (isSaved) saved++;
+      const serverUrl = serverPhotos[i] || '';
+      const isSaved = serverUrl.startsWith('http');
+      if (isSaved) serverSavedCount++;
       const slot = document.createElement('div');
-      slot.className = 'container-slot ' + (isSaved ? 'saved' : 'empty');
+      slot.className = 'photo-slot';
       slot.id = 'cslot' + i;
-      slot.style.animationDelay = (i*60) + 'ms';
-      const thumb = isSaved ? toDriveThumb(url) : '';
-      slot.innerHTML =
-        '<div class="container-slot-head">' +
-          '<div class="container-slot-num">' + (i+1) + '</div>' +
-          '<div class="container-slot-name"><span class="th">'+CONTAINER_LABELS_TH[i]+'</span><span class="en">'+CONTAINER_LABELS_EN[i]+'</span> <span class="req-star">*</span></div>' +
-          '<div class="container-slot-status">' + (isSaved?'✓':'⬜') + '</div>' +
-          (isSaved ? '<button class="gm-mini" onclick="showGMContainerModal('+i+')">✏️</button>' : '') +
-        '</div>' +
-        '<div class="container-slot-body">' +
-          (isSaved
-            ? '<div class="container-thumb" onclick="openPreview(\''+url+'\',\''+CONTAINER_LABELS_EN[i].toUpperCase()+'\')"><img src="'+thumb+'" alt=""></div>'
-            : '<button onclick="triggerCaptureContainer('+i+')">📷 <span class="th">แตะเพื่อถ่ายรูป</span><span class="en">Tap to take photo</span></button>'
-          ) +
-        '</div>';
-      if (isSaved) state.containerPhotoData[i] = url;
+      if (isSaved) {
+        // Saved to server — locked, tap to preview
+        slot.classList.add('captured');
+        const thumb = toDriveThumb(serverUrl);
+        slot.innerHTML = '<img src="' + thumb + '" alt=""><div class="check-tag">✓</div>';
+        (function(url, label){ slot.onclick = () => openPreview(url, label); })(serverUrl, CONTAINER_LABELS_EN[i].toUpperCase());
+      } else if (state.containerPhotos[i]) {
+        // Captured locally, not yet saved — tap thumbnail to preview
+        const data = state.containerPhotos[i];
+        slot.classList.add('captured');
+        slot.innerHTML = '<img src="' + data + '" alt=""><div class="check-tag">✓</div>';
+        (function(d, label){ slot.onclick = () => openPreview(d, label); })(data, CONTAINER_LABELS_EN[i].toUpperCase());
+      } else {
+        // Empty — tap to shoot
+        slot.innerHTML =
+          '<div class="slot-num">0' + (i+1) + ' <span class="req-star">*</span></div>' +
+          '<div class="slot-cam">📷</div>' +
+          '<div class="slot-label"><span class="th">' + CONTAINER_LABELS_TH[i] + '</span><span class="en">' + CONTAINER_LABELS_EN[i] + '</span></div>';
+        (function(idx){ slot.onclick = () => triggerCaptureContainer(idx); })(i);
+      }
       grid.appendChild(slot);
     }
-    state.containerSaved = saved;
-    document.getElementById('containerBadge').textContent = saved + '/6';
-    document.getElementById('containerNum').textContent = saved + '/6';
-    document.getElementById('containerBadge').classList.toggle('complete', saved === 6);
-    document.getElementById('containerBadge').classList.toggle('partial', saved > 0 && saved < 6);
-    updateContainerRing(saved);
-    document.getElementById('step3CompleteBtn').disabled = saved < 6;
+    // Display count = server saved + locally captured (not yet saved)
+    const localCount = state.containerPhotos.filter(Boolean).length;
+    const displayCount = serverSavedCount + localCount;
+    document.getElementById('containerNum').textContent = displayCount + '/6';
+    document.getElementById('containerBadge').textContent = displayCount + '/6';
+    document.getElementById('containerBadge').classList.toggle('complete', displayCount === 6);
+    document.getElementById('containerBadge').classList.toggle('partial', displayCount > 0 && displayCount < 6);
+    updateContainerRing(displayCount);
+    // Complete button: only when all 6 saved to server
+    state.containerSaved = serverSavedCount === 6;
+    document.getElementById('step3CompleteBtn').disabled = !state.containerSaved;
+    // Save Container button: enabled when all 6 locally captured and NOT yet server-saved
+    const saveBtn = document.getElementById('step3SaveContainerBtn');
+    if (saveBtn) saveBtn.disabled = !(localCount === 6 && serverSavedCount < 6);
+    // Update chips above grid
+    buildContainerChips();
   }
+
+  function buildContainerChips(){
+    const row = document.getElementById('containerChipsRow');
+    if (!row) return;
+    row.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+      const data = state.containerPhotos[i];
+      if (!data) continue;
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = '<img src="' + data + '" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px">';
+      (function(d, label){ chip.onclick = () => openPreview(d, label); })(data, CONTAINER_LABELS_EN[i].toUpperCase());
+      row.appendChild(chip);
+    }
+  }
+
   function toDriveThumb(url){
     const m = url.match(/[-\w]{25,}/);
     return m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w800' : url;
   }
-  // ---- Container: show preview (thumbnail + Save / Retake) ----
-  function _showContainerPreview(slotIdx, dataUrl){
+
+  function handleContainerPhotoCaptured(slotIdx, dataUrl){
+    state.containerPhotos[slotIdx] = dataUrl;
     const slot = document.getElementById('cslot' + slotIdx);
-    if (!slot) return;
-    slot.className = 'container-slot preview';
-    const statusEl = slot.querySelector('.container-slot-status');
-    if (statusEl) statusEl.textContent = '👁';
-    const body = slot.querySelector('.container-slot-body');
-    body.innerHTML =
-      '<div class="container-thumb"><img src="'+dataUrl+'" alt=""></div>' +
-      '<div class="container-preview-actions">' +
-        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">&#x1F4BE; <span class="th">บันทึก</span><span class="en">Save</span></button>' +
-        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">&#x1F504; <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
-      '</div>';
-    // Use closure so dataUrl is never serialised into a long HTML attribute
-    body.querySelector('.container-thumb').onclick =
-      () => openPreview(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
+    if (slot) {
+      slot.classList.add('captured');
+      slot.innerHTML = '<img src="' + dataUrl + '" alt=""><div class="check-tag">✓</div>';
+      (function(d, label){ slot.onclick = () => openPreview(d, label); })(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
+    }
+    // Update counter + chips
+    const capturedCount = state.containerPhotos.filter(Boolean).length;
+    document.getElementById('containerNum').textContent = capturedCount + '/6';
+    document.getElementById('containerBadge').textContent = capturedCount + '/6';
+    document.getElementById('containerBadge').classList.toggle('partial', capturedCount > 0 && capturedCount < 6);
+    document.getElementById('containerBadge').classList.toggle('complete', capturedCount === 6);
+    updateContainerRing(capturedCount);
+    buildContainerChips();
+    // Enable Save Container button once all 6 are captured
+    const saveBtn = document.getElementById('step3SaveContainerBtn');
+    if (saveBtn) saveBtn.disabled = capturedCount < 6;
   }
 
-  // ---- Container: show saving state (thumbnail + spinner) ----
-  function _showContainerSaving(slotIdx, dataUrl){
-    const slot = document.getElementById('cslot' + slotIdx);
-    if (!slot) return;
-    slot.className = 'container-slot saving';
-    const statusEl = slot.querySelector('.container-slot-status');
-    if (statusEl) statusEl.textContent = '⏳';
-    const body = slot.querySelector('.container-slot-body');
-    body.innerHTML =
-      '<div class="container-thumb"><img src="'+dataUrl+'" alt=""></div>' +
-      '<div class="container-saving-msg"><div class="spinner spinner-dark"></div>' +
-        '<span class="th">กำลังบันทึก...</span><span class="en">Saving...</span>' +
-      '</div>';
-    body.querySelector('.container-thumb').onclick =
-      () => openPreview(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
-  }
-
-  // ---- Step 1: photo captured → show thumbnail, tap to preview, double-tap to retake ----
-  // (unchanged — already works this way)
-
-  function handleContainerCaptured(slotIdx, dataUrl){
-    state.containerPending[slotIdx] = dataUrl;
-    const slot = document.getElementById('cslot' + slotIdx);
-    if (!slot) {
-      console.warn('handleContainerCaptured: cslot' + slotIdx + ' not in DOM yet — pending state saved, will restore on next grid build');
+  function saveContainerPhotos(){
+    const photos = state.containerPhotos.slice();
+    if (photos.filter(Boolean).length < 6) {
+      showToast(state.lang==='th'?'⚠ ถ่ายรูปให้ครบ 6 รูปก่อน':'⚠ Take all 6 photos first', 'error');
       return;
     }
-    // Show thumbnail + Save / Retake — user previews before committing
-    _showContainerPreview(slotIdx, dataUrl);
-  }
-
-  function retakeContainer(slotIdx){
-    delete state.containerPending[slotIdx];
-    delete state.containerSaving[slotIdx];
-    loadContainerPhotos(); // resets the slot back to empty camera button
-  }
-
-  function confirmContainerSave(slotIdx){
-    const data = state.containerPending[slotIdx];
-    if (!data) return;
-    state.containerSaving[slotIdx] = true;
-    _showContainerSaving(slotIdx, data);
-    if (!state.containerNonces[slotIdx]) state.containerNonces[slotIdx] = generateNonce();
-    const timer = setTimeout(() => {
-      delete state.containerSaving[slotIdx];
-      containerSlotFailed(slotIdx, state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout');
-    }, 60000);
-    apiCallWithRetry('saveContainerPhoto', {
-      orderName: state.step3Order.name,
-      slotIndex: slotIdx,
-      photo: data,
-      staffId: state.staffId,
-      staffName: state.staffName,
-      slotLabel: CONTAINER_LABELS_EN[slotIdx],
-      nonce: state.containerNonces[slotIdx]
-    })
-      .then(result => {
-        clearTimeout(timer);
-        delete state.containerSaving[slotIdx];
-        if (result && result.success) {
-          state.containerNonces[slotIdx] = null;
-          delete state.containerPending[slotIdx];
-          state.containerPhotoData[slotIdx] = data;
-          loadContainerPhotos();
-          showToast(state.lang==='th' ? '✓ บันทึกรูปตู้สินค้าแล้ว' : '✓ Container photo saved', 'success');
-        } else {
-          containerSlotFailed(slotIdx, (result && (result.message || result.error)) || '❌ Save failed');
-        }
-      })
-      .catch(err => {
-        clearTimeout(timer);
-        delete state.containerSaving[slotIdx];
-        containerSlotFailed(slotIdx, '❌ ' + err.message);
-      });
-  }
-
-  function containerSlotFailed(slotIdx, msg){
-    const slot = document.getElementById('cslot' + slotIdx);
-    if (!slot) return;
-    slot.className = 'container-slot failed';
-    const statusEl = slot.querySelector('.container-slot-status');
-    if (statusEl) statusEl.textContent = '❌';
-    const pendingData = state.containerPending[slotIdx];
-    const body = slot.querySelector('.container-slot-body');
-    body.innerHTML =
-      (pendingData ? '<div class="container-thumb"><img src="'+pendingData+'" alt=""></div>' : '') +
-      '<div class="container-error">' + msg + '</div>' +
-      '<div class="container-preview-actions">' +
-        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">🔄 <span class="th">ลองใหม่</span><span class="en">Retry</span></button>' +
-        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">&#x1F504; <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
-      '</div>';
-    if (pendingData) {
-      body.querySelector('.container-thumb').onclick =
-        () => openPreview(pendingData, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
+    if (!navigator.onLine) {
+      showToast(state.lang==='th'?'❌ ไม่มีอินเทอร์เน็ต':'❌ No internet', 'error');
+      return;
     }
+    const btn = document.getElementById('step3SaveContainerBtn');
+    btn.disabled = true;
+    if (!state.containerSaveNonce) state.containerSaveNonce = generateNonce();
+    // Sequential save — one slot at a time (LockService requirement)
+    function saveSlot(idx){
+      if (idx >= 6) {
+        // All 6 saved successfully
+        state.containerSaveNonce = null;
+        state.containerPhotos = [null,null,null,null,null,null];
+        showStatusMsg('containerStatus', '', '');
+        loadContainerPhotos();
+        showToast(state.lang==='th'?'✓ บันทึกรูปตู้สินค้าครบแล้ว':'✓ All container photos saved', 'success');
+        return;
+      }
+      showStatusMsg('containerStatus',
+        (state.lang==='th'?'กำลังบันทึกรูปตู้ (':'Saving container photo (') + (idx+1) + '/6)...', 'loading');
+      apiCallWithRetry('saveContainerPhoto', {
+        orderName: state.step3Order.name,
+        slotIndex: idx,
+        photo: photos[idx],
+        staffId: state.staffId,
+        staffName: state.staffName,
+        slotLabel: CONTAINER_LABELS_EN[idx],
+        nonce: state.containerSaveNonce + '_' + idx
+      })
+        .then(result => {
+          if (result && result.success) {
+            saveSlot(idx + 1);
+          } else {
+            btn.disabled = false;
+            showStatusMsg('containerStatus',
+              '❌ ' + ((result && (result.message || result.error)) || 'Save failed') + ' (รูปที่ ' + (idx+1) + ')',
+              'error');
+          }
+        })
+        .catch(err => {
+          btn.disabled = false;
+          showStatusMsg('containerStatus', '❌ ' + err.message + ' (รูปที่ ' + (idx+1) + ')', 'error');
+        });
+    }
+    saveSlot(0);
   }
 
   // ============ COMPLETE STEP 3 ============
   function completeStep3(){
-    if (state.containerSaved < 6) { showToast(state.lang==='th'?'⚠ ตู้สินค้ายังไม่ครบ 6 รูป':'⚠ Container photos not yet 6/6','error'); return; }
+    if (!state.containerSaved) { showToast(state.lang==='th'?'⚠ ตู้สินค้ายังไม่ครบ 6 รูป':'⚠ Container photos not yet 6/6','error'); return; }
     const total = state.step3Order.lines.length;
     const msg = total < 5
       ? (state.lang==='th'?('⚠ มีเพียง '+total+' แถว (น้อยกว่า 5)\nต้องการเสร็จสิ้น?'):('⚠ Only '+total+' lines (below 5)\nComplete anyway?'))
@@ -2162,21 +2111,26 @@
   function setupTabs(){
     const btns = document.querySelectorAll('#step3Tabs .tab-btn');
     const indicator = document.getElementById('tabIndicator');
+    const saveLineBtn = document.getElementById('step3SaveLineBtn');
+    const saveContainerBtn = document.getElementById('step3SaveContainerBtn');
     function updateIndicator(btn){
       const r = btn.getBoundingClientRect();
       const pr = btn.parentElement.getBoundingClientRect();
       indicator.style.left = (r.left - pr.left) + 'px';
       indicator.style.width = r.width + 'px';
     }
-    btns.forEach(b => {
-      b.onclick = () => {
-        btns.forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
-        updateIndicator(b);
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('tab' + b.dataset.tab.charAt(0).toUpperCase() + b.dataset.tab.slice(1)).classList.add('active');
-      };
-    });
+    function switchTab(b){
+      btns.forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      updateIndicator(b);
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab' + b.dataset.tab.charAt(0).toUpperCase() + b.dataset.tab.slice(1)).classList.add('active');
+      // Show the correct save button for the active tab
+      const isContainer = b.dataset.tab === 'container';
+      saveLineBtn.style.display = isContainer ? 'none' : '';
+      saveContainerBtn.style.display = isContainer ? '' : 'none';
+    }
+    btns.forEach(b => { b.onclick = () => switchTab(b); });
     requestAnimationFrame(() => updateIndicator(btns[0]));
   }
 
