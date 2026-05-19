@@ -190,6 +190,9 @@
   .photo-slot.captured:hover .retake-overlay{opacity:1}
   /* Container slot — persistent label strip always visible at bottom of photo */
   .cslot-label{position:absolute;bottom:0;left:0;right:0;padding:4px 5px 5px;background:linear-gradient(to top,rgba(0,0,0,0.78) 60%,transparent);color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:1.25;letter-spacing:.01em;pointer-events:none}
+  /* GM unlock button inside a saved container slot */
+  .cslot-gm{position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:5px;background:rgba(0,0,0,0.45);border:none;font-size:11px;cursor:pointer;display:grid;place-items:center;padding:0;transition:background var(--t-fast);z-index:2}
+  .cslot-gm:hover{background:rgba(0,0,0,0.7)}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
   /* Status banner */
@@ -1879,12 +1882,17 @@
       });
   }
 
-  function _containerSlotInner(imgSrc, idx){
-    // Shared HTML for a captured/saved slot — photo fills box, label strip + checkmark always visible.
+  function _containerSlotInner(imgSrc, idx, isSavedToServer){
+    // Photo fills box; label strip always visible at bottom.
+    // Server-saved slots also get a GM unlock button (top-left corner).
     const labelTH = CONTAINER_LABELS_TH[idx];
     const labelEN = CONTAINER_LABELS_EN[idx];
+    const gmBtn = isSavedToServer
+      ? '<button class="gm-mini cslot-gm" onclick="event.stopPropagation();showGMContainerModal(' + idx + ')" title="GM unlock">✏️</button>'
+      : '';
     return '<img src="' + imgSrc + '" alt="">' +
            '<div class="check-tag">✓</div>' +
+           gmBtn +
            '<div class="cslot-label"><span class="th">' + labelTH + '</span><span class="en">' + labelEN + '</span></div>';
   }
 
@@ -1900,15 +1908,15 @@
       slot.className = 'photo-slot';
       slot.id = 'cslot' + i;
       if (isSaved) {
-        // Saved to server — locked, tap to preview
+        // Saved to server — locked, tap to preview; GM button to unlock
         slot.classList.add('captured');
-        slot.innerHTML = _containerSlotInner(toDriveThumb(serverUrl), i);
+        slot.innerHTML = _containerSlotInner(toDriveThumb(serverUrl), i, true);
         (function(url, label){ slot.onclick = () => openPreview(url, label); })(serverUrl, CONTAINER_LABELS_EN[i].toUpperCase());
       } else if (state.containerPhotos[i]) {
-        // Captured locally, not yet saved — tap thumbnail to preview
+        // Captured locally, not yet saved — tap to preview
         const data = state.containerPhotos[i];
         slot.classList.add('captured');
-        slot.innerHTML = _containerSlotInner(data, i);
+        slot.innerHTML = _containerSlotInner(data, i, false);
         (function(d, label){ slot.onclick = () => openPreview(d, label); })(data, CONTAINER_LABELS_EN[i].toUpperCase());
       } else {
         // Empty — tap to shoot
@@ -1931,9 +1939,9 @@
     // Complete button: only when all 6 saved to server
     state.containerSaved = serverSavedCount === 6;
     document.getElementById('step3CompleteBtn').disabled = !state.containerSaved;
-    // Save Container button: enabled when all 6 locally captured and NOT yet server-saved
+    // Save button: enabled whenever there are locally-captured (unsaved) photos
     const saveBtn = document.getElementById('step3SaveContainerBtn');
-    if (saveBtn) saveBtn.disabled = !(localCount === 6 && serverSavedCount < 6);
+    if (saveBtn) saveBtn.disabled = localCount === 0;
   }
 
   function toDriveThumb(url){
@@ -1946,7 +1954,7 @@
     const slot = document.getElementById('cslot' + slotIdx);
     if (slot) {
       slot.classList.add('captured');
-      slot.innerHTML = _containerSlotInner(dataUrl, slotIdx);
+      slot.innerHTML = _containerSlotInner(dataUrl, slotIdx, false);
       (function(d, label){ slot.onclick = () => openPreview(d, label); })(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
     }
     // Update counter
@@ -1956,15 +1964,17 @@
     document.getElementById('containerBadge').classList.toggle('partial', capturedCount > 0 && capturedCount < 6);
     document.getElementById('containerBadge').classList.toggle('complete', capturedCount === 6);
     updateContainerRing(capturedCount);
-    // Enable Save Container button once all 6 are captured
+    // Enable Save button as soon as at least 1 photo is captured
     const saveBtn = document.getElementById('step3SaveContainerBtn');
-    if (saveBtn) saveBtn.disabled = capturedCount < 6;
+    if (saveBtn) saveBtn.disabled = false;
   }
 
   function saveContainerPhotos(){
-    const photos = state.containerPhotos.slice();
-    if (photos.filter(Boolean).length < 6) {
-      showToast(state.lang==='th'?'⚠ ถ่ายรูปให้ครบ 6 รูปก่อน':'⚠ Take all 6 photos first', 'error');
+    // Collect only the slots that have locally-captured (unsaved) photos
+    const toSave = [];
+    state.containerPhotos.forEach(function(data, i){ if (data) toSave.push(i); });
+    if (toSave.length === 0) {
+      showToast(state.lang==='th'?'⚠ ไม่มีรูปใหม่ที่จะบันทึก':'⚠ No new photos to save', 'error');
       return;
     }
     if (!navigator.onLine) {
@@ -1975,43 +1985,44 @@
     btn.disabled = true;
     if (!state.containerSaveNonce) state.containerSaveNonce = generateNonce();
     // Sequential save — one slot at a time (LockService requirement)
-    function saveSlot(idx){
-      if (idx >= 6) {
-        // All 6 saved successfully
+    function saveNext(pos){
+      if (pos >= toSave.length) {
+        // All captured slots saved
         state.containerSaveNonce = null;
-        state.containerPhotos = [null,null,null,null,null,null];
+        toSave.forEach(function(i){ state.containerPhotos[i] = null; });
         showStatusMsg('containerStatus', '', '');
         loadContainerPhotos();
-        showToast(state.lang==='th'?'✓ บันทึกรูปตู้สินค้าครบแล้ว':'✓ All container photos saved', 'success');
+        showToast(state.lang==='th'?'✓ บันทึกรูปตู้สินค้าแล้ว':'✓ Container photos saved', 'success');
         return;
       }
+      const slotIdx = toSave[pos];
       showStatusMsg('containerStatus',
-        (state.lang==='th'?'กำลังบันทึกรูปตู้ (':'Saving container photo (') + (idx+1) + '/6)...', 'loading');
+        (state.lang==='th'?'กำลังบันทึกรูปที่ ':'Saving photo ') + (pos+1) + '/' + toSave.length + '...', 'loading');
       apiCallWithRetry('saveContainerPhoto', {
         orderName: state.step3Order.name,
-        slotIndex: idx,
-        photo: photos[idx],
+        slotIndex: slotIdx,
+        photo: state.containerPhotos[slotIdx],
         staffId: state.staffId,
         staffName: state.staffName,
-        slotLabel: CONTAINER_LABELS_EN[idx],
-        nonce: state.containerSaveNonce + '_' + idx
+        slotLabel: CONTAINER_LABELS_EN[slotIdx],
+        nonce: state.containerSaveNonce + '_' + slotIdx
       })
         .then(result => {
           if (result && result.success) {
-            saveSlot(idx + 1);
+            saveNext(pos + 1);
           } else {
             btn.disabled = false;
             showStatusMsg('containerStatus',
-              '❌ ' + ((result && (result.message || result.error)) || 'Save failed') + ' (รูปที่ ' + (idx+1) + ')',
+              '❌ ' + ((result && (result.message || result.error)) || 'Save failed') + ' (รูปที่ ' + (slotIdx+1) + ')',
               'error');
           }
         })
         .catch(err => {
           btn.disabled = false;
-          showStatusMsg('containerStatus', '❌ ' + err.message + ' (รูปที่ ' + (idx+1) + ')', 'error');
+          showStatusMsg('containerStatus', '❌ ' + err.message + ' (รูปที่ ' + (slotIdx+1) + ')', 'error');
         });
     }
-    saveSlot(0);
+    saveNext(0);
   }
 
   // ============ COMPLETE STEP 3 ============
