@@ -1072,6 +1072,7 @@
     containerNonces: {},
     containerPhotoData: {},
     containerPending: {},
+    containerSaving: {},
     step12UploadNonce: null,
     step3LineNonce: null,
     gmContainerSlot: -1,
@@ -1903,7 +1904,13 @@
     Object.keys(state.containerPending).forEach(function(key){
       var idx = parseInt(key, 10);
       if (!isNaN(idx) && state.containerPending[idx]) {
-        handleContainerCaptured(idx, state.containerPending[idx]);
+        if (state.containerSaving[idx]) {
+          // Save already in flight — restore the saving spinner (not preview buttons)
+          _showContainerSaving(idx, state.containerPending[idx]);
+        } else {
+          // Photo captured, not yet saved — restore preview with Save / Retake
+          _showContainerPreview(idx, state.containerPending[idx]);
+        }
       }
     });
   }
@@ -1948,16 +1955,29 @@
     const m = url.match(/[-\w]{25,}/);
     return m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w800' : url;
   }
-  function handleContainerCaptured(slotIdx, dataUrl){
-    state.containerPending[slotIdx] = dataUrl;
+  // ---- Container: show preview (thumbnail + Save / Retake) ----
+  function _showContainerPreview(slotIdx, dataUrl){
     const slot = document.getElementById('cslot' + slotIdx);
-    // Guard: slot may not exist yet if buildContainerGrid hasn't run
-    if (!slot) {
-      console.warn('handleContainerCaptured: cslot' + slotIdx + ' not in DOM yet — pending state saved, will restore on next grid build');
-      return;
-    }
-    // Auto-save immediately on capture — same pattern as Steps 1 & 2.
-    // Show the thumbnail + saving spinner straight away so photo never "disappears".
+    if (!slot) return;
+    slot.className = 'container-slot preview';
+    const statusEl = slot.querySelector('.container-slot-status');
+    if (statusEl) statusEl.textContent = '👁';
+    const body = slot.querySelector('.container-slot-body');
+    body.innerHTML =
+      '<div class="container-thumb"><img src="'+dataUrl+'" alt=""></div>' +
+      '<div class="container-preview-actions">' +
+        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">&#x1F4BE; <span class="th">บันทึก</span><span class="en">Save</span></button>' +
+        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">&#x1F504; <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
+      '</div>';
+    // Use closure so dataUrl is never serialised into a long HTML attribute
+    body.querySelector('.container-thumb').onclick =
+      () => openPreview(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
+  }
+
+  // ---- Container: show saving state (thumbnail + spinner) ----
+  function _showContainerSaving(slotIdx, dataUrl){
+    const slot = document.getElementById('cslot' + slotIdx);
+    if (!slot) return;
     slot.className = 'container-slot saving';
     const statusEl = slot.querySelector('.container-slot-status');
     if (statusEl) statusEl.textContent = '⏳';
@@ -1969,38 +1989,50 @@
       '</div>';
     body.querySelector('.container-thumb').onclick =
       () => openPreview(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
-    // Kick off save automatically — no separate Save button tap needed
-    confirmContainerSave(slotIdx);
   }
+
+  // ---- Step 1: photo captured → show thumbnail, tap to preview, double-tap to retake ----
+  // (unchanged — already works this way)
+
+  function handleContainerCaptured(slotIdx, dataUrl){
+    state.containerPending[slotIdx] = dataUrl;
+    const slot = document.getElementById('cslot' + slotIdx);
+    if (!slot) {
+      console.warn('handleContainerCaptured: cslot' + slotIdx + ' not in DOM yet — pending state saved, will restore on next grid build');
+      return;
+    }
+    // Show thumbnail + Save / Retake — user previews before committing
+    _showContainerPreview(slotIdx, dataUrl);
+  }
+
   function retakeContainer(slotIdx){
     delete state.containerPending[slotIdx];
-    loadContainerPhotos(); // resets the slot
+    delete state.containerSaving[slotIdx];
+    loadContainerPhotos(); // resets the slot back to empty camera button
   }
+
   function confirmContainerSave(slotIdx){
     const data = state.containerPending[slotIdx];
     if (!data) return;
-    const slot = document.getElementById('cslot' + slotIdx);
-    slot.className = 'container-slot saving';
-    slot.querySelector('.container-slot-status').textContent = '⏳';
-    // Always keep the thumbnail visible during save — never hide the photo
-    slot.querySelector('.container-slot-body').innerHTML =
-      '<div class="container-thumb"><img src="'+data+'" alt=""></div>' +
-      '<div class="container-saving-msg"><div class="spinner spinner-dark"></div>' +
-        '<span class="th">กำลังบันทึก...</span><span class="en">Saving...</span>' +
-      '</div>';
+    state.containerSaving[slotIdx] = true;
+    _showContainerSaving(slotIdx, data);
     if (!state.containerNonces[slotIdx]) state.containerNonces[slotIdx] = generateNonce();
-    const timer = setTimeout(() => containerSlotFailed(slotIdx, state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout'), 60000);
+    const timer = setTimeout(() => {
+      delete state.containerSaving[slotIdx];
+      containerSlotFailed(slotIdx, state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout');
+    }, 60000);
     apiCallWithRetry('saveContainerPhoto', {
       orderName: state.step3Order.name,
       slotIndex: slotIdx,
-      photo: data,                          // FIX: was 'photoData' — backend expects 'photo'
+      photo: data,
       staffId: state.staffId,
       staffName: state.staffName,
       slotLabel: CONTAINER_LABELS_EN[slotIdx],
-      nonce: state.containerNonces[slotIdx] // FIX: was 'clientNonce'
+      nonce: state.containerNonces[slotIdx]
     })
       .then(result => {
         clearTimeout(timer);
+        delete state.containerSaving[slotIdx];
         if (result && result.success) {
           state.containerNonces[slotIdx] = null;
           delete state.containerPending[slotIdx];
@@ -2011,8 +2043,13 @@
           containerSlotFailed(slotIdx, (result && (result.message || result.error)) || '❌ Save failed');
         }
       })
-      .catch(err => { clearTimeout(timer); containerSlotFailed(slotIdx, '❌ ' + err.message); });
+      .catch(err => {
+        clearTimeout(timer);
+        delete state.containerSaving[slotIdx];
+        containerSlotFailed(slotIdx, '❌ ' + err.message);
+      });
   }
+
   function containerSlotFailed(slotIdx, msg){
     const slot = document.getElementById('cslot' + slotIdx);
     if (!slot) return;
@@ -2026,7 +2063,7 @@
       '<div class="container-error">' + msg + '</div>' +
       '<div class="container-preview-actions">' +
         '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">🔄 <span class="th">ลองใหม่</span><span class="en">Retry</span></button>' +
-        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')"><span class="th">ถ่ายใหม่</span><span class="en">New photo</span></button>' +
+        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">&#x1F504; <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
       '</div>';
     if (pendingData) {
       body.querySelector('.container-thumb').onclick =
