@@ -1661,7 +1661,7 @@
   function checkOrderStep3Input(){
     const name = document.getElementById('step3OrderInput').value.trim().toUpperCase();
     if (!name) { showStatusMsg('step3OrderStatus', state.lang==='th'?'กรุณากรอก Order':'Enter an Order', 'error'); return; }
-    if (!validateOrderName(name)) { showStatusMsg('step3OrderStatus', state.lang==='th'?'❌ รูปแบบ Order ไม่ถูกต้อง':'❌ Invalid format', 'error'); return; }
+    if (!validateOrderName(name)) { showStatusMsg('step3OrderStatus', state.lang==='th'?'❌ รูปแบบไม่ถูกต้อง — ตัวอย่าง: ABT-1/H หรือ IM/ABC001':'❌ Invalid format — e.g. ABT-1/H or IM/ABC001', 'error'); return; }
     showStatusMsg('step3OrderStatus', state.lang==='th'?'กำลังตรวจสอบ...':'Checking...', 'loading');
     apiCall('checkOrderStep3', { orderName: name })
       .then(result => {
@@ -1862,8 +1862,10 @@
   const CONTAINER_LABELS_TH = ['ตู้เปล่า','อุณหภูมิก่อนเปิดตู้','Temperature กลาง','Temperature ท้ายตู้','เลข Seal','รูปปิดตู้'];
   const CONTAINER_LABELS_EN = ['Empty container','Temp before opening','Temp middle','Temp rear','Seal number','Container closed'];
 
-  function loadContainerPhotos(){
-    buildContainerGrid(new Array(6).fill(''));
+  function loadContainerPhotos(keepCurrentGrid){
+    // keepCurrentGrid=true: skip the initial blank-slate render (used after a save
+    // so the user doesn't see photos disappear while the API round-trip completes).
+    if (!keepCurrentGrid) buildContainerGrid(new Array(6).fill(''));
     apiCall('getContainerPhotos', { orderName: state.step3Order.name })
       .then(result => {
         if (result && result._error) {
@@ -1878,7 +1880,7 @@
       })
       .catch(err => {
         console.warn('loadContainerPhotos failed:', err);
-        buildContainerGrid(new Array(6).fill(''));
+        if (!keepCurrentGrid) buildContainerGrid(new Array(6).fill(''));
       });
   }
 
@@ -1987,11 +1989,13 @@
     // Sequential save — one slot at a time (LockService requirement)
     function saveNext(pos){
       if (pos >= toSave.length) {
-        // All captured slots saved
+        // All captured slots saved successfully
         state.containerSaveNonce = null;
         toSave.forEach(function(i){ state.containerPhotos[i] = null; });
-        showStatusMsg('containerStatus', '', '');
-        loadContainerPhotos();
+        document.getElementById('containerStatus').style.display = 'none';
+        // keepCurrentGrid=true: grid keeps showing local photos while API refreshes,
+        // so the user never sees a blank grid after saving.
+        loadContainerPhotos(true);
         showToast(state.lang==='th'?'✓ บันทึกรูปตู้สินค้าแล้ว':'✓ Container photos saved', 'success');
         return;
       }
@@ -2012,14 +2016,16 @@
             saveNext(pos + 1);
           } else {
             btn.disabled = false;
-            showStatusMsg('containerStatus',
-              '❌ ' + ((result && (result.message || result.error)) || 'Save failed') + ' (รูปที่ ' + (slotIdx+1) + ')',
-              'error');
+            const errMsg = '❌ ' + ((result && (result.message || result.error)) || 'Save failed') + ' (รูปที่ ' + (slotIdx+1) + ')';
+            showStatusMsg('containerStatus', errMsg, 'error');
+            showToast(errMsg, 'error');
           }
         })
         .catch(err => {
           btn.disabled = false;
-          showStatusMsg('containerStatus', '❌ ' + err.message + ' (รูปที่ ' + (slotIdx+1) + ')', 'error');
+          const errMsg = '❌ ' + err.message + ' (รูปที่ ' + (slotIdx+1) + ')';
+          showStatusMsg('containerStatus', errMsg, 'error');
+          showToast(errMsg, 'error');
         });
     }
     saveNext(0);
