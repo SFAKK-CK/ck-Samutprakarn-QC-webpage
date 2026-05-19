@@ -980,11 +980,16 @@
 
 <script>
   // ============================================================
-  // FACTORY 2 (Samut Prakarn) v2.3 — production-ready
-  // v2.3: container photo fix — _reapplyPendingContainerSlots called
-  //       immediately after buildContainerGrid(empty) so pending previews
-  //       are never invisible during the API round-trip; compressImage now
-  //       has onerror + canvas fallback; handleContainerCaptured null-safe.
+  // FACTORY 2 (Samut Prakarn) v2.4 — production-ready
+  // v2.4: container photo full fix —
+  //       (1) 'photoData' renamed to 'photo' — backend field name mismatch was
+  //           silently rejecting every container upload
+  //       (2) auto-save on capture, no separate Save button tap needed
+  //       (3) thumbnail stays visible during saving AND on failure
+  //       (4) 'clientNonce' renamed to 'nonce' for proper deduplication
+  // v2.3: _reapplyPendingContainerSlots called immediately after
+  //       buildContainerGrid(empty); compressImage onerror fallback;
+  //       handleContainerCaptured null-safe.
   // GitHub-hosted: set APPS_SCRIPT_URL to your Factory 2 deployment URL.
   // ============================================================
 
@@ -1977,7 +1982,12 @@
     const slot = document.getElementById('cslot' + slotIdx);
     slot.className = 'container-slot saving';
     slot.querySelector('.container-slot-status').textContent = '⏳';
-    slot.querySelector('.container-slot-body').innerHTML = '<div class="container-saving-msg"><div class="spinner spinner-dark"></div><span class="th">กำลังบันทึก...</span><span class="en">Saving...</span></div>';
+    // Always keep the thumbnail visible during save — never hide the photo
+    slot.querySelector('.container-slot-body').innerHTML =
+      '<div class="container-thumb"><img src="'+data+'" alt=""></div>' +
+      '<div class="container-saving-msg"><div class="spinner spinner-dark"></div>' +
+        '<span class="th">กำลังบันทึก...</span><span class="en">Saving...</span>' +
+      '</div>';
     if (!state.containerNonces[slotIdx]) state.containerNonces[slotIdx] = generateNonce();
     const timer = setTimeout(() => containerSlotFailed(slotIdx, state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout'), 60000);
     apiCallWithRetry('saveContainerPhoto', {
