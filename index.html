@@ -180,7 +180,7 @@
   .photo-slot .slot-num{position:absolute;top:8px;left:10px;font-size:10px;font-weight:700;color:var(--ink-4);font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
   .photo-slot .slot-cam{font-size:22px;color:var(--ink-3);margin-bottom:6px;transition:transform var(--t-med)}
   .photo-slot:hover .slot-cam{transform:scale(1.08)}
-  .photo-slot .slot-label{font-size:11px;color:var(--ink-3);line-height:1.3;padding:0 4px}
+  .photo-slot .slot-label{font-size:33px;font-weight:700;color:var(--ink-2);line-height:1.3;padding:0 4px}
   .photo-slot.captured{border-style:solid;border-color:var(--green);background:#000;padding:0;animation:slotFlash .6s ease}
   @keyframes slotFlash{0%{box-shadow:0 0 0 0 var(--green-soft)}50%{box-shadow:0 0 0 6px rgba(46,107,60,0)}100%{box-shadow:0 0 0 0 rgba(46,107,60,0)}}
   .photo-slot.captured img{width:100%;height:100%;object-fit:cover;display:block;animation:fadeIn var(--t-slow) ease both}
@@ -189,7 +189,7 @@
   .photo-slot.captured .retake-overlay{position:absolute;inset:auto 0 0;padding:6px 8px;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);color:#fff;font-size:11px;font-weight:600;text-align:center;opacity:0;transition:opacity var(--t-fast)}
   .photo-slot.captured:hover .retake-overlay{opacity:1}
   /* Container slot — persistent label strip always visible at bottom of photo */
-  .cslot-label{position:absolute;bottom:0;left:0;right:0;padding:4px 5px 5px;background:linear-gradient(to top,rgba(0,0,0,0.78) 60%,transparent);color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:1.25;letter-spacing:.01em;pointer-events:none}
+  .cslot-label{position:absolute;bottom:0;left:0;right:0;padding:6px 5px 7px;background:linear-gradient(to top,rgba(0,0,0,0.78) 60%,transparent);color:#fff;font-size:27px;font-weight:700;text-align:center;line-height:1.25;letter-spacing:.01em;pointer-events:none}
   /* GM unlock button inside a saved container slot */
   .cslot-gm{position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:5px;background:rgba(0,0,0,0.45);border:none;font-size:11px;cursor:pointer;display:grid;place-items:center;padding:0;transition:background var(--t-fast);z-index:2}
   .cslot-gm:hover{background:rgba(0,0,0,0.7)}
