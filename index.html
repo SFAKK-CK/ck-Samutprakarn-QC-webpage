@@ -1951,26 +1951,21 @@
       console.warn('handleContainerCaptured: cslot' + slotIdx + ' not in DOM yet — pending state saved, will restore on next grid build');
       return;
     }
-    slot.className = 'container-slot preview';
+    // Auto-save immediately on capture — same pattern as Steps 1 & 2.
+    // Show the thumbnail + saving spinner straight away so photo never "disappears".
+    slot.className = 'container-slot saving';
     const statusEl = slot.querySelector('.container-slot-status');
-    if (statusEl) statusEl.textContent = '👁️';
-    // BUG FIX: Do NOT embed dataUrl in an onclick HTML attribute string.
-    // Compressed base64 images are 100,000-400,000 chars long. Mobile browsers
-    // (especially iOS Safari) silently truncate long attribute values, which
-    // corrupts the JS string and makes the onclick do nothing -- causing
-    // the 'image appears but tapping does nothing / disappears' symptom.
-    // Fix: set innerHTML without onclick, then attach via a closure,
-    // the same pattern handlePhoto12Captured uses with slot.onclick = () => ...
+    if (statusEl) statusEl.textContent = '⏳';
     const body = slot.querySelector('.container-slot-body');
     body.innerHTML =
       '<div class="container-thumb"><img src="'+dataUrl+'" alt=""></div>' +
-      '<div class="container-preview-actions">' +
-        '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">&#x1F4BE; <span class="th">บันทึก</span><span class="en">Save</span></button>' +
-        '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')">&#x1F504; <span class="th">ถ่ายใหม่</span><span class="en">Retake</span></button>' +
+      '<div class="container-saving-msg"><div class="spinner spinner-dark"></div>' +
+        '<span class="th">กำลังบันทึก...</span><span class="en">Saving...</span>' +
       '</div>';
-    // Closure: dataUrl captured as a variable reference, never serialised into HTML.
     body.querySelector('.container-thumb').onclick =
       () => openPreview(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
+    // Kick off save automatically — no separate Save button tap needed
+    confirmContainerSave(slotIdx);
   }
   function retakeContainer(slotIdx){
     delete state.containerPending[slotIdx];
@@ -1986,9 +1981,13 @@
     if (!state.containerNonces[slotIdx]) state.containerNonces[slotIdx] = generateNonce();
     const timer = setTimeout(() => containerSlotFailed(slotIdx, state.lang==='th'?'⚠ หมดเวลา':'⚠ Timeout'), 60000);
     apiCallWithRetry('saveContainerPhoto', {
-      orderName: state.step3Order.name, slotIndex: slotIdx, photoData: data,
-      staffId: state.staffId, staffName: state.staffName,
-      clientNonce: state.containerNonces[slotIdx]
+      orderName: state.step3Order.name,
+      slotIndex: slotIdx,
+      photo: data,                          // FIX: was 'photoData' — backend expects 'photo'
+      staffId: state.staffId,
+      staffName: state.staffName,
+      slotLabel: CONTAINER_LABELS_EN[slotIdx],
+      nonce: state.containerNonces[slotIdx] // FIX: was 'clientNonce'
     })
       .then(result => {
         clearTimeout(timer);
@@ -1997,23 +1996,32 @@
           delete state.containerPending[slotIdx];
           state.containerPhotoData[slotIdx] = data;
           loadContainerPhotos();
-          showToast(result.message, 'success');
+          showToast(state.lang==='th' ? '✓ บันทึกรูปตู้สินค้าแล้ว' : '✓ Container photo saved', 'success');
         } else {
-          containerSlotFailed(slotIdx, (result && result.message) || '❌ Save failed');
+          containerSlotFailed(slotIdx, (result && (result.message || result.error)) || '❌ Save failed');
         }
       })
       .catch(err => { clearTimeout(timer); containerSlotFailed(slotIdx, '❌ ' + err.message); });
   }
   function containerSlotFailed(slotIdx, msg){
     const slot = document.getElementById('cslot' + slotIdx);
+    if (!slot) return;
     slot.className = 'container-slot failed';
-    slot.querySelector('.container-slot-status').textContent = '❌';
-    slot.querySelector('.container-slot-body').innerHTML =
+    const statusEl = slot.querySelector('.container-slot-status');
+    if (statusEl) statusEl.textContent = '❌';
+    const pendingData = state.containerPending[slotIdx];
+    const body = slot.querySelector('.container-slot-body');
+    body.innerHTML =
+      (pendingData ? '<div class="container-thumb"><img src="'+pendingData+'" alt=""></div>' : '') +
       '<div class="container-error">' + msg + '</div>' +
       '<div class="container-preview-actions">' +
         '<button class="btn btn-accent" onclick="confirmContainerSave('+slotIdx+')">🔄 <span class="th">ลองใหม่</span><span class="en">Retry</span></button>' +
         '<button class="btn btn-ghost" onclick="retakeContainer('+slotIdx+')"><span class="th">ถ่ายใหม่</span><span class="en">New photo</span></button>' +
       '</div>';
+    if (pendingData) {
+      body.querySelector('.container-thumb').onclick =
+        () => openPreview(pendingData, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
+    }
   }
 
   // ============ COMPLETE STEP 3 ============
