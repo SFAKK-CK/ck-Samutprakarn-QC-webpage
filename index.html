@@ -1169,6 +1169,7 @@
   });
   otpInput.focus();
   document.getElementById('loginBtn').addEventListener('click', enterStaffId);
+  otpInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); enterStaffId(); } });
 
   function enterStaffId(){
     const val = otpInput.value.trim();
