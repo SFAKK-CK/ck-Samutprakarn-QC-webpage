@@ -2090,7 +2090,7 @@
     // Option A: explicit server-side clear. The sheet cell is emptied before
     // returning so the slot is genuinely empty — subsequent save can write
     // into it without tripping the concurrency-rejection check.
-    apiCall('clearContainerSlot', { orderName: state.step3Order.name, slotIndex: slot, password: pw })
+    apiCall('clearContainerSlot', { orderName: state.step3Order.name, slotIndex: slot, gmPassword: pw })
       .then(result => {
         if (result && result.success) {
           closeGMContainerModal();
