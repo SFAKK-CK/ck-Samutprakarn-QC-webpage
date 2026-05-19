@@ -188,6 +188,8 @@
   @keyframes popCheck{0%{transform:scale(0)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
   .photo-slot.captured .retake-overlay{position:absolute;inset:auto 0 0;padding:6px 8px;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);color:#fff;font-size:11px;font-weight:600;text-align:center;opacity:0;transition:opacity var(--t-fast)}
   .photo-slot.captured:hover .retake-overlay{opacity:1}
+  /* Container slot — persistent label strip always visible at bottom of photo */
+  .cslot-label{position:absolute;bottom:0;left:0;right:0;padding:4px 5px 5px;background:linear-gradient(to top,rgba(0,0,0,0.78) 60%,transparent);color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:1.25;letter-spacing:.01em;pointer-events:none}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
   /* Status banner */
@@ -911,8 +913,10 @@
               <div class="info-title"><span class="th">รูปตู้สินค้า</span><span class="en">Container photos</span></div>
               <div class="info-meta"><span class="th">แตะ slot ถ่ายรูป · แตะรูปเพื่อดูตัวอย่าง</span><span class="en">Tap slot to shoot · tap photo to preview</span></div>
             </div>
+            <button class="step3-refresh" onclick="loadContainerPhotos()" title="Refresh">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
           </div>
-          <div class="chips-row" id="containerChipsRow"></div>
           <div class="photo-grid" id="step3ContainerGrid" style="grid-template-columns:1fr 1fr 1fr"></div>
           <div id="containerStatus" class="status-msg" style="display:none;margin-top:12px"></div>
         </div>
@@ -1233,7 +1237,7 @@
       resetOrderBtn3();
       showScreen('screen-step3');
       apiCall('getRecentStep3Orders', {})
-        .then(populateRecentChips)
+        .then(result => populateRecentChips(result && result.orders ? result.orders : []))
         .catch(() => populateRecentChips([]));
     }
   }
@@ -1875,6 +1879,15 @@
       });
   }
 
+  function _containerSlotInner(imgSrc, idx){
+    // Shared HTML for a captured/saved slot — photo fills box, label strip + checkmark always visible.
+    const labelTH = CONTAINER_LABELS_TH[idx];
+    const labelEN = CONTAINER_LABELS_EN[idx];
+    return '<img src="' + imgSrc + '" alt="">' +
+           '<div class="check-tag">✓</div>' +
+           '<div class="cslot-label"><span class="th">' + labelTH + '</span><span class="en">' + labelEN + '</span></div>';
+  }
+
   function buildContainerGrid(serverPhotos){
     const grid = document.getElementById('step3ContainerGrid');
     grid.innerHTML = '';
@@ -1889,14 +1902,13 @@
       if (isSaved) {
         // Saved to server — locked, tap to preview
         slot.classList.add('captured');
-        const thumb = toDriveThumb(serverUrl);
-        slot.innerHTML = '<img src="' + thumb + '" alt=""><div class="check-tag">✓</div>';
+        slot.innerHTML = _containerSlotInner(toDriveThumb(serverUrl), i);
         (function(url, label){ slot.onclick = () => openPreview(url, label); })(serverUrl, CONTAINER_LABELS_EN[i].toUpperCase());
       } else if (state.containerPhotos[i]) {
         // Captured locally, not yet saved — tap thumbnail to preview
         const data = state.containerPhotos[i];
         slot.classList.add('captured');
-        slot.innerHTML = '<img src="' + data + '" alt=""><div class="check-tag">✓</div>';
+        slot.innerHTML = _containerSlotInner(data, i);
         (function(d, label){ slot.onclick = () => openPreview(d, label); })(data, CONTAINER_LABELS_EN[i].toUpperCase());
       } else {
         // Empty — tap to shoot
@@ -1922,23 +1934,6 @@
     // Save Container button: enabled when all 6 locally captured and NOT yet server-saved
     const saveBtn = document.getElementById('step3SaveContainerBtn');
     if (saveBtn) saveBtn.disabled = !(localCount === 6 && serverSavedCount < 6);
-    // Update chips above grid
-    buildContainerChips();
-  }
-
-  function buildContainerChips(){
-    const row = document.getElementById('containerChipsRow');
-    if (!row) return;
-    row.innerHTML = '';
-    for (let i = 0; i < 6; i++) {
-      const data = state.containerPhotos[i];
-      if (!data) continue;
-      const chip = document.createElement('div');
-      chip.className = 'chip';
-      chip.innerHTML = '<img src="' + data + '" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px">';
-      (function(d, label){ chip.onclick = () => openPreview(d, label); })(data, CONTAINER_LABELS_EN[i].toUpperCase());
-      row.appendChild(chip);
-    }
   }
 
   function toDriveThumb(url){
@@ -1951,17 +1946,16 @@
     const slot = document.getElementById('cslot' + slotIdx);
     if (slot) {
       slot.classList.add('captured');
-      slot.innerHTML = '<img src="' + dataUrl + '" alt=""><div class="check-tag">✓</div>';
+      slot.innerHTML = _containerSlotInner(dataUrl, slotIdx);
       (function(d, label){ slot.onclick = () => openPreview(d, label); })(dataUrl, CONTAINER_LABELS_EN[slotIdx].toUpperCase());
     }
-    // Update counter + chips
+    // Update counter
     const capturedCount = state.containerPhotos.filter(Boolean).length;
     document.getElementById('containerNum').textContent = capturedCount + '/6';
     document.getElementById('containerBadge').textContent = capturedCount + '/6';
     document.getElementById('containerBadge').classList.toggle('partial', capturedCount > 0 && capturedCount < 6);
     document.getElementById('containerBadge').classList.toggle('complete', capturedCount === 6);
     updateContainerRing(capturedCount);
-    buildContainerChips();
     // Enable Save Container button once all 6 are captured
     const saveBtn = document.getElementById('step3SaveContainerBtn');
     if (saveBtn) saveBtn.disabled = capturedCount < 6;
