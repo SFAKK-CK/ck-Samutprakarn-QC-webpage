@@ -980,8 +980,12 @@
 
 <script>
   // ============================================================
-  // FACTORY 1 v2 — production-ready with prototype design
-  // GitHub-hosted: change APPS_SCRIPT_URL after deploying Code.gs
+  // FACTORY 2 (Samut Prakarn) v2.3 — production-ready
+  // v2.3: container photo fix — _reapplyPendingContainerSlots called
+  //       immediately after buildContainerGrid(empty) so pending previews
+  //       are never invisible during the API round-trip; compressImage now
+  //       has onerror + canvas fallback; handleContainerCaptured null-safe.
+  // GitHub-hosted: set APPS_SCRIPT_URL to your Factory 2 deployment URL.
   // ============================================================
 
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxukeNmA-KyszYran8nErZiuUdjYj_cTYpQeCYnkC9rdszJHvRZD728VjWli97kTPqBBw/exec';
@@ -1498,17 +1502,30 @@
   });
   function compressImage(dataUrl, cb){
     const img = new Image();
+    img.onerror = () => {
+      // If the image fails to decode (can happen on some phones), fall back
+      // to the original data so the photo is never silently lost.
+      console.warn('compressImage: img.onerror — using original dataUrl');
+      cb(dataUrl);
+    };
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
-      const MAX = 1200;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h / w * MAX); w = MAX; }
-        else { w = Math.round(w / h * MAX); h = MAX; }
+      try {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        const MAX = 1200;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h / w * MAX); w = MAX; }
+          else { w = Math.round(w / h * MAX); h = MAX; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.5);
+        // Sanity check: if canvas returned empty/broken data, use original
+        cb((compressed && compressed.length > 100) ? compressed : dataUrl);
+      } catch(e) {
+        console.warn('compressImage: canvas failed —', e, '— using original');
+        cb(dataUrl);
       }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      cb(canvas.toDataURL('image/jpeg', 0.5));
     };
     img.src = dataUrl;
   }
@@ -1840,7 +1857,10 @@
     // nothing being saved to Google Sheets because the Save button vanishes.
     // Fix: after rebuilding from server data, re-apply any slots that are
     // currently in state.containerPending (captured but not yet saved).
+    // v2.3 FIX: also re-apply IMMEDIATELY after the synchronous empty-grid
+    // render so pending previews are never invisible during the API round-trip.
     buildContainerGrid(new Array(6).fill(''));
+    _reapplyPendingContainerSlots();
     apiCall('getContainerPhotos', { orderName: state.step3Order.name })
       .then(result => {
         if (result && result._error) {
@@ -1926,8 +1946,14 @@
   function handleContainerCaptured(slotIdx, dataUrl){
     state.containerPending[slotIdx] = dataUrl;
     const slot = document.getElementById('cslot' + slotIdx);
+    // Guard: slot may not exist yet if buildContainerGrid hasn't run
+    if (!slot) {
+      console.warn('handleContainerCaptured: cslot' + slotIdx + ' not in DOM yet — pending state saved, will restore on next grid build');
+      return;
+    }
     slot.className = 'container-slot preview';
-    slot.querySelector('.container-slot-status').textContent = '👁️';
+    const statusEl = slot.querySelector('.container-slot-status');
+    if (statusEl) statusEl.textContent = '👁️';
     // BUG FIX: Do NOT embed dataUrl in an onclick HTML attribute string.
     // Compressed base64 images are 100,000-400,000 chars long. Mobile browsers
     // (especially iOS Safari) silently truncate long attribute values, which
