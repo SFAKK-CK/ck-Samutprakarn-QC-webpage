@@ -188,11 +188,30 @@
   @keyframes popCheck{0%{transform:scale(0)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
   .photo-slot.captured .retake-overlay{position:absolute;inset:auto 0 0;padding:6px 8px;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);color:#fff;font-size:11px;font-weight:600;text-align:center;opacity:0;transition:opacity var(--t-fast)}
   .photo-slot.captured:hover .retake-overlay{opacity:1}
-  /* Container slot — persistent label strip always visible at bottom of photo */
-  .cslot-label{position:absolute;bottom:0;left:0;right:0;padding:6px 5px 7px;background:linear-gradient(to top,rgba(0,0,0,0.78) 60%,transparent);color:#fff;font-size:27px;font-weight:700;text-align:center;line-height:1.25;letter-spacing:.01em;pointer-events:none}
+  /* Container slot — persistent label strip always visible at bottom of photo.
+     v2: 15px (was 27px) — 11 tiles on a 3-col grid leave ~110px per tile,
+     and the confirmed labels are longer than the original six. */
+  .cslot-label{position:absolute;bottom:0;left:0;right:0;padding:5px 4px 6px;background:linear-gradient(to top,rgba(0,0,0,0.78) 60%,transparent);color:#fff;font-size:15px;font-weight:700;text-align:center;line-height:1.3;letter-spacing:.01em;pointer-events:none}
   /* GM unlock button inside a saved container slot */
   .cslot-gm{position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:5px;background:rgba(0,0,0,0.45);border:none;font-size:11px;cursor:pointer;display:grid;place-items:center;padding:0;transition:background var(--t-fast);z-index:2}
   .cslot-gm:hover{background:rgba(0,0,0,0.7)}
+  /* v2: example/reference photo shown faded inside an EMPTY slot.
+     The wrap is pointer-transparent so tapping the tile still opens the
+     camera; only the 🔍 zoom button accepts taps. A 404 on the image hides
+     the whole wrap via onerror, so slots without an example look as before. */
+  .example-wrap{position:absolute;inset:0;pointer-events:none;z-index:1}
+  .example-wrap .example-img{width:100%;height:100%;object-fit:cover;opacity:.33;filter:saturate(.75)}
+  .example-tag{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;background:rgba(255,255,255,.85);color:var(--ink-2);padding:2px 8px;border-radius:99px;white-space:nowrap}
+  .example-zoom{position:absolute;top:5px;right:5px;width:26px;height:26px;border-radius:6px;background:rgba(0,0,0,0.45);color:#fff;border:none;font-size:13px;cursor:pointer;display:grid;place-items:center;padding:0;pointer-events:auto;z-index:2}
+  .example-zoom:hover{background:rgba(0,0,0,0.7)}
+  /* Keep the shoot affordances layered above a faded example.
+     slot-num is already position:absolute — z-index alone is enough there;
+     slot-cam and slot-label are in normal flow and need relative to stack. */
+  .photo-slot .slot-num{z-index:2}
+  .photo-slot .slot-cam,.photo-slot .slot-label{position:relative;z-index:2}
+  /* Container grid only: 11 tiles × longer labels — shrink the empty-tile
+     label (33px base) to match the 15px captured strip. Step 1/2 unaffected. */
+  #step3ContainerGrid .slot-label{font-size:14px}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
   /* Status banner */
@@ -851,7 +870,7 @@
           </button>
           <button class="tab-btn" data-tab="container">
             <span class="th">ตู้สินค้า</span><span class="en">Container</span>
-            <span class="badge" id="containerBadge">0/6</span>
+            <span class="badge" id="containerBadge">0/11</span>
           </button>
           <div class="tab-indicator" id="tabIndicator"></div>
         </div>
@@ -911,7 +930,7 @@
                 <circle class="track" cx="30" cy="30" r="25"/>
                 <circle class="progress" cx="30" cy="30" r="25" stroke="var(--amber)" stroke-dasharray="157.08" stroke-dashoffset="157.08" id="containerRing"/>
               </svg>
-              <div class="num" id="containerNum">0/6</div>
+              <div class="num" id="containerNum">0/11</div>
             </div>
             <div class="info">
               <div class="info-title"><span class="th">รูปตู้สินค้า</span><span class="en">Container photos</span></div>
@@ -992,11 +1011,12 @@
 
 <script>
   // ============================================================
-  // FACTORY 2 (Samut Prakarn) v2.5 — production-ready
-  // v2.5: container tab fully redesigned to match Line photo system.
-  //       - 6 fixed photo slots in photo-grid (2×3), all required.
+  // FACTORY 2 (Samut Prakarn) v2 — container 6 → 11 slots (Aug 2026)
+  // Container tab: 11 fixed photo slots, all required. Display order is
+  // shooting order (CONTAINER_DISPLAY_ORDER); storage order is sheet columns
+  // E–O with slots 0–5 unchanged from the previous system.
   //       - Tap slot → camera → thumbnail shows (tap thumbnail to preview).
-  //       - Single "Save container" button appears once all 6 captured.
+  //       - Single "Save container" button appears once photos are captured.
   //       - Sequential backend save (LockService safe), one slot at a time.
   //       - After save: slots locked, tapping opens preview only.
   //       - Chips row above grid shows locally-captured thumbnails.
@@ -1078,7 +1098,7 @@
     step3Order: { name:'', lines:[], status:'new' },
     linePhotos: [null,null,null],
     recentOrders3: [],
-    containerPhotos: [null,null,null,null,null,null],
+    containerPhotos: [null,null,null,null,null,null,null,null,null,null,null], // 11 — must match CONTAINER_SLOT_COUNT
     containerSaved: false,
     containerSaveNonce: null,
     gmContainerSlot: -1,
@@ -1671,7 +1691,7 @@
         window._step3CheckName = name;
         const startBtn = document.getElementById('step3StartBtn');
         const contBtn = document.getElementById('step3ContinueBtn');
-        const isComplete = result && (result.status||'').toLowerCase() === 'complete';
+        const isComplete = result && isCompleteStatus(result.status);
         if (result && (result.exists || (result.lines && result.lines.length > 0))) {
           startBtn.style.display = 'none';
           contBtn.style.display = ''; contBtn.disabled = false;
@@ -1689,7 +1709,7 @@
     if (!name) return;
     const result = window._step3CheckResult;
     if (!result || window._step3CheckName !== name) { checkOrderStep3Input(); return; }
-    const isComplete = (result.status||'').toLowerCase() === 'complete';
+    const isComplete = isCompleteStatus(result.status);
     state.step3Order = { name: name, lines: result.lines||[], status: result.status||'new' };
 
     document.getElementById('step3OrderBadge').textContent = name;
@@ -1857,17 +1877,97 @@
     const ring = document.getElementById('containerRing');
     if (!ring) return;
     const circ = 2 * Math.PI * 25;
-    ring.style.strokeDashoffset = circ * (1 - curr / 6);
+    ring.style.strokeDashoffset = circ * (1 - curr / CONTAINER_SLOT_COUNT);
+  }
+
+  // v2 fix: the backend writes the status 'completed', but v1 of this page
+  // compared against 'complete' — so an order completed through the app never
+  // read back as complete after a reload, and the "order is complete" lock was
+  // effectively dead. Legacy rows carry 'Complete'/'In Progress' from the v1
+  // system, so accept every spelling that has ever been written.
+  function isCompleteStatus(s){
+    const v = String(s || '').trim().toLowerCase();
+    return v === 'complete' || v === 'completed';
   }
 
   // ============ CONTAINER PHOTOS ============
-  const CONTAINER_LABELS_TH = ['ตู้เปล่า','อุณหภูมิก่อนเปิดตู้','Temperature กลาง','Temperature ท้ายตู้','เลข Seal','รูปปิดตู้'];
-  const CONTAINER_LABELS_EN = ['Empty container','Temp before opening','Temp middle','Temp rear','Seal number','Container closed'];
+  // v2 — 11 slots. Two orderings are in play, keep them straight:
+  //   STORAGE index  = column in the sheet. Slots 0–5 are the v1 six and never
+  //                    move. 6–10 are the new columns K–O. Everything internal
+  //                    (labels, state.containerPhotos, cslot ids, slotIndex
+  //                    sent to the backend) uses STORAGE index.
+  //   DISPLAY position = shooting order, what the officer sees on screen.
+  //                    Only the grid render loop uses it.
+  const CONTAINER_SLOT_COUNT = 11;
+
+  // EN names match the sheet headers in Container Photos (minus ' URL'),
+  // as confirmed by Sal on 5 Aug 2026 — except slots 9/10 drop
+  // 'with Line Number' so they fit on a tile. The EN string is also the
+  // Drive filename suffix, so keep it filename-safe (no / \ : * ? " < > |).
+  //                              STORAGE index →  0    1    2    3    4    5    6    7    8    9   10
+  // Thai wording confirmed by Sal, 5 Aug 2026.
+  const CONTAINER_LABELS_TH = [
+    'เปิดตู้ (มีไอเย็น)',          // 0  → screen 5   redefined: fog + container no
+    'อุณหภูมิก่อนเปิดตู้',        // 1  → screen 4
+    'Temp กลาง (ไฟเขียว)',      // 2  → screen 6   redefined: card + green LED
+    'Temp ท้ายตู้ (ไฟเขียว)',    // 3  → screen 8   redefined: card + green LED
+    'เลข Seal',                 // 4  → screen 10
+    'ปิดตู้ + Seal',             // 5  → screen 11  redefined: seal must be visible
+    'ด้านข้างตู้ A',              // 6  → screen 1   NEW
+    'ด้านข้างตู้ B',              // 7  → screen 2   NEW
+    'ประตูหลังก่อนเปิด',          // 8  → screen 3   NEW
+    'ตำแหน่ง Temp กลาง',        // 9  → screen 7   NEW
+    'ตำแหน่ง Temp ท้ายตู้'       // 10 → screen 9   NEW
+  ];
+  const CONTAINER_LABELS_EN = [
+    'Open Door with fog',
+    'Temp before opening',
+    'Temp middle with green light',
+    'Temp rear with green light',
+    'Seal number',
+    'Closed Door with seal',
+    'Exterior side A',
+    'Exterior side B',
+    'Back Door before opening',
+    'Temp middle position',
+    'Temp rear position'
+  ];
+
+  // ── Example / reference photos ─────────────────────────────
+  // Static files served from the GitHub repo, folder examples/container/.
+  // Files are named by SCREEN position (what the officer sees), the array is
+  // indexed by STORAGE slot like everything else. Photos are supplied by Sal;
+  // until a file exists its slot simply shows no example (broken images hide
+  // themselves), so this ships safely before the photos do.
+  //                              STORAGE index →  0    1    2 …
+  const CONTAINER_EXAMPLES = [
+    'examples/container/05-open-door-with-fog.jpg',        // 0
+    'examples/container/04-temp-before-opening.jpg',       // 1
+    'examples/container/06-temp-middle-green-light.jpg',   // 2
+    'examples/container/08-temp-rear-green-light.jpg',     // 3
+    'examples/container/10-seal-number.jpg',               // 4
+    'examples/container/11-closed-door-with-seal.jpg',     // 5
+    'examples/container/01-exterior-side-A.jpg',           // 6
+    'examples/container/02-exterior-side-B.jpg',           // 7
+    'examples/container/03-back-door-before-opening.jpg',  // 8
+    'examples/container/07-temp-middle-position.jpg',      // 9
+    'examples/container/09-temp-rear-position.jpg'         // 10
+  ];
+
+  function viewContainerExample(i){
+    const label = (state.lang==='th' ? CONTAINER_LABELS_TH[i] : CONTAINER_LABELS_EN[i]);
+    openPreview(CONTAINER_EXAMPLES[i], (state.lang==='th' ? 'ตัวอย่าง — ' : 'EXAMPLE — ') + label.toUpperCase());
+  }
+
+  // Screen position n (0-based) renders storage slot CONTAINER_DISPLAY_ORDER[n].
+  // This is what lets the five new columns be appended to the sheet without
+  // moving a single historical value.
+  const CONTAINER_DISPLAY_ORDER = [6, 7, 8, 1, 0, 2, 9, 3, 10, 4, 5];
 
   function loadContainerPhotos(keepCurrentGrid){
     // keepCurrentGrid=true: skip the initial blank-slate render (used after a save
     // so the user doesn't see photos disappear while the API round-trip completes).
-    if (!keepCurrentGrid) buildContainerGrid(new Array(6).fill(''));
+    if (!keepCurrentGrid) buildContainerGrid(new Array(CONTAINER_SLOT_COUNT).fill(''));
     apiCall('getContainerPhotos', { orderName: state.step3Order.name })
       .then(result => {
         if (result && result._error) {
@@ -1876,13 +1976,14 @@
             : '⚠ Could not load container photos: ' + result.message, 'error');
           return;
         }
-        const photos = (result && Array.isArray(result.photos)) ? result.photos : new Array(6).fill('');
-        while (photos.length < 6) photos.push('');
+        // An old backend returns 6 entries; pad so the grid still renders.
+        const photos = (result && Array.isArray(result.photos)) ? result.photos : new Array(CONTAINER_SLOT_COUNT).fill('');
+        while (photos.length < CONTAINER_SLOT_COUNT) photos.push('');
         buildContainerGrid(photos);
       })
       .catch(err => {
         console.warn('loadContainerPhotos failed:', err);
-        if (!keepCurrentGrid) buildContainerGrid(new Array(6).fill(''));
+        if (!keepCurrentGrid) buildContainerGrid(new Array(CONTAINER_SLOT_COUNT).fill(''));
       });
   }
 
@@ -1904,7 +2005,9 @@
     const grid = document.getElementById('step3ContainerGrid');
     grid.innerHTML = '';
     let serverSavedCount = 0;
-    for (let i = 0; i < 6; i++) {
+    // pos = where it sits on screen (shooting order). i = storage slot (sheet column).
+    for (let pos = 0; pos < CONTAINER_SLOT_COUNT; pos++) {
+      const i = CONTAINER_DISPLAY_ORDER[pos];
       const serverUrl = serverPhotos[i] || '';
       const isSaved = serverUrl.startsWith('http');
       if (isSaved) serverSavedCount++;
@@ -1924,8 +2027,22 @@
         (function(d, label){ slot.onclick = () => openPreview(d, label); })(data, CONTAINER_LABELS_EN[i].toUpperCase());
       } else {
         // Empty — tap to shoot
+        // Number shown is the on-screen position, so officers see 01…11 in order.
+        // If a reference photo exists it shows faded behind the tile; the 🔍
+        // button opens it full-size. A missing file hides itself (onerror),
+        // so shipping before the example photos exist is safe.
+        const ex = CONTAINER_EXAMPLES[i] || '';
+        const exampleHtml = ex
+          ? '<div class="example-wrap">' +
+              '<img class="example-img" src="' + ex + '" alt="" loading="lazy" ' +
+                   'onerror="this.parentElement.style.display=\'none\'">' +
+              '<div class="example-tag"><span class="th">ตัวอย่าง</span><span class="en">Example</span></div>' +
+              '<button class="example-zoom" onclick="event.stopPropagation();viewContainerExample(' + i + ')" title="View example">🔍</button>' +
+            '</div>'
+          : '';
         slot.innerHTML =
-          '<div class="slot-num">0' + (i+1) + ' <span class="req-star">*</span></div>' +
+          exampleHtml +
+          '<div class="slot-num">' + (pos < 9 ? '0' : '') + (pos+1) + ' <span class="req-star">*</span></div>' +
           '<div class="slot-cam">📷</div>' +
           '<div class="slot-label"><span class="th">' + CONTAINER_LABELS_TH[i] + '</span><span class="en">' + CONTAINER_LABELS_EN[i] + '</span></div>';
         (function(idx){ slot.onclick = () => triggerCaptureContainer(idx); })(i);
@@ -1935,13 +2052,13 @@
     // Display count = server saved + locally captured (not yet saved)
     const localCount = state.containerPhotos.filter(Boolean).length;
     const displayCount = serverSavedCount + localCount;
-    document.getElementById('containerNum').textContent = displayCount + '/6';
-    document.getElementById('containerBadge').textContent = displayCount + '/6';
-    document.getElementById('containerBadge').classList.toggle('complete', displayCount === 6);
-    document.getElementById('containerBadge').classList.toggle('partial', displayCount > 0 && displayCount < 6);
+    document.getElementById('containerNum').textContent = displayCount + '/' + CONTAINER_SLOT_COUNT;
+    document.getElementById('containerBadge').textContent = displayCount + '/' + CONTAINER_SLOT_COUNT;
+    document.getElementById('containerBadge').classList.toggle('complete', displayCount === CONTAINER_SLOT_COUNT);
+    document.getElementById('containerBadge').classList.toggle('partial', displayCount > 0 && displayCount < CONTAINER_SLOT_COUNT);
     updateContainerRing(displayCount);
-    // Complete button: only when all 6 saved to server
-    state.containerSaved = serverSavedCount === 6;
+    // Complete button: only when all slots are saved to server
+    state.containerSaved = serverSavedCount >= CONTAINER_SLOT_COUNT;
     document.getElementById('step3CompleteBtn').disabled = !state.containerSaved;
     // Save button: enabled whenever there are locally-captured (unsaved) photos
     const saveBtn = document.getElementById('step3SaveContainerBtn');
@@ -1963,10 +2080,10 @@
     }
     // Update counter
     const capturedCount = state.containerPhotos.filter(Boolean).length;
-    document.getElementById('containerNum').textContent = capturedCount + '/6';
-    document.getElementById('containerBadge').textContent = capturedCount + '/6';
-    document.getElementById('containerBadge').classList.toggle('partial', capturedCount > 0 && capturedCount < 6);
-    document.getElementById('containerBadge').classList.toggle('complete', capturedCount === 6);
+    document.getElementById('containerNum').textContent = capturedCount + '/' + CONTAINER_SLOT_COUNT;
+    document.getElementById('containerBadge').textContent = capturedCount + '/' + CONTAINER_SLOT_COUNT;
+    document.getElementById('containerBadge').classList.toggle('partial', capturedCount > 0 && capturedCount < CONTAINER_SLOT_COUNT);
+    document.getElementById('containerBadge').classList.toggle('complete', capturedCount === CONTAINER_SLOT_COUNT);
     updateContainerRing(capturedCount);
     // Enable Save button as soon as at least 1 photo is captured
     const saveBtn = document.getElementById('step3SaveContainerBtn');
@@ -2035,7 +2152,7 @@
 
   // ============ COMPLETE STEP 3 ============
   function completeStep3(){
-    if (!state.containerSaved) { showToast(state.lang==='th'?'⚠ ตู้สินค้ายังไม่ครบ 6 รูป':'⚠ Container photos not yet 6/6','error'); return; }
+    if (!state.containerSaved) { showToast(state.lang==='th'?('⚠ ตู้สินค้ายังไม่ครบ ' + CONTAINER_SLOT_COUNT + ' รูป'):('⚠ Container photos not yet ' + CONTAINER_SLOT_COUNT + '/' + CONTAINER_SLOT_COUNT),'error'); return; }
     const total = state.step3Order.lines.length;
     const msg = total < 5
       ? (state.lang==='th'?('⚠ มีเพียง '+total+' แถว (น้อยกว่า 5)\nต้องการเสร็จสิ้น?'):('⚠ Only '+total+' lines (below 5)\nComplete anyway?'))
@@ -2050,7 +2167,9 @@
         clearTimeout(timer); btn.disabled = false;
         if (result && result.success) {
           showStatusMsg('step3LineStatus', result.message, 'success');
-          state.step3Order.status = 'Complete';
+          // Match the vocabulary the backend actually writes, so the local
+          // state agrees with what a reload will return.
+          state.step3Order.status = 'completed';
           document.getElementById('step3UploadSection').style.display = 'none';
           document.getElementById('step3GMRevertSection').style.display = '';
           document.getElementById('step3CompletedBanner').style.display = '';
@@ -2067,12 +2186,15 @@
   function closeGMRevertModal(){ document.getElementById('gmRevertModal').classList.remove('open'); if (!isAnyPreviewOpen()) hideEmergencyClose(); }
   function submitGMRevert(){
     const pw = document.getElementById('gmRevertPassword').value;
-    apiCall('revertStep3Order', { orderName: state.step3Order.name, password: pw })
+    // v2: `gmPassword` is the name the backend has always required. v1 sent
+    // `password`, which is why GM revert never worked. The v2 backend accepts
+    // both, but send the correct one.
+    apiCall('revertStep3Order', { orderName: state.step3Order.name, gmPassword: pw, password: pw })
       .then(result => {
         if (result && result.success) {
           closeGMRevertModal();
           showToast(result.message, 'success');
-          state.step3Order.status = 'In Progress';
+          state.step3Order.status = 'in_progress';
           document.getElementById('step3GMRevertSection').style.display = 'none';
           document.getElementById('step3UploadSection').style.display = '';
           document.getElementById('step3CompletedBanner').style.display = 'none';
