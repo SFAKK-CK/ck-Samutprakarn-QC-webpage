@@ -200,10 +200,12 @@
      camera; only the 🔍 zoom button accepts taps. A 404 on the image hides
      the whole wrap via onerror, so slots without an example look as before. */
   .example-wrap{position:absolute;inset:0;pointer-events:none;z-index:1}
-  .example-wrap .example-img{width:100%;height:100%;object-fit:cover;opacity:.33;filter:saturate(.75)}
-  .example-tag{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;background:rgba(255,255,255,.85);color:var(--ink-2);padding:2px 8px;border-radius:99px;white-space:nowrap}
-  .example-zoom{position:absolute;top:5px;right:5px;width:26px;height:26px;border-radius:6px;background:rgba(0,0,0,0.45);color:#fff;border:none;font-size:13px;cursor:pointer;display:grid;place-items:center;padding:0;pointer-events:auto;z-index:2}
-  .example-zoom:hover{background:rgba(0,0,0,0.7)}
+  .example-wrap .example-img{width:100%;height:100%;object-fit:cover;opacity:.5;filter:saturate(.8)}
+  /* Tag sits top-centre, clear of both the slot number (top-left) and the
+     label strip (bottom) — it collided with two-line labels before. */
+  .example-tag{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;background:rgba(255,255,255,.9);color:var(--ink-2);padding:2px 8px;border-radius:99px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .example-zoom{position:absolute;top:32px;right:5px;width:30px;height:30px;border-radius:6px;background:rgba(0,0,0,0.55);color:#fff;border:none;font-size:14px;cursor:pointer;display:grid;place-items:center;padding:0;pointer-events:auto;z-index:2}
+  .example-zoom:hover{background:rgba(0,0,0,0.75)}
   /* Keep the shoot affordances layered above a faded example.
      slot-num is already position:absolute — z-index alone is enough there;
      slot-cam and slot-label are in normal flow and need relative to stack. */
@@ -212,6 +214,13 @@
   /* Container grid only: 11 tiles × longer labels — shrink the empty-tile
      label (33px base) to match the 15px captured strip. Step 1/2 unaffected. */
   #step3ContainerGrid .slot-label{font-size:14px}
+  /* When an example is showing, the label becomes a solid strip pinned to the
+     bottom of the tile — white text on a dark gradient, same treatment as
+     captured tiles — instead of dark text floating over a busy photo. */
+  .photo-slot.has-example{justify-content:flex-start;padding:0}
+  .photo-slot.has-example .slot-cam{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:26px;text-shadow:0 1px 6px rgba(255,255,255,.9);margin:0}
+  .photo-slot.has-example .slot-label{position:absolute;bottom:0;left:0;right:0;padding:6px 4px 7px;background:linear-gradient(to top,rgba(0,0,0,0.8) 60%,transparent);color:#fff;font-size:15px;font-weight:700;line-height:1.3;text-align:center}
+  .photo-slot.has-example .slot-num{background:rgba(255,255,255,.85);padding:2px 6px;border-radius:5px;top:5px;left:5px}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
   /* Status banner */
@@ -2032,10 +2041,14 @@
         // button opens it full-size. A missing file hides itself (onerror),
         // so shipping before the example photos exist is safe.
         const ex = CONTAINER_EXAMPLES[i] || '';
+        // has-example switches the label to a solid bottom strip (readable over
+        // a photo). If the image 404s, onerror removes the class so the tile
+        // falls back to the plain empty look.
+        if (ex) slot.classList.add('has-example');
         const exampleHtml = ex
           ? '<div class="example-wrap">' +
               '<img class="example-img" src="' + ex + '" alt="" loading="lazy" ' +
-                   'onerror="this.parentElement.style.display=\'none\'">' +
+                   'onerror="this.parentElement.style.display=\'none\';this.closest(\'.photo-slot\').classList.remove(\'has-example\')">' +
               '<div class="example-tag"><span class="th">ตัวอย่าง</span><span class="en">Example</span></div>' +
               '<button class="example-zoom" onclick="event.stopPropagation();viewContainerExample(' + i + ')" title="View example">🔍</button>' +
             '</div>'
