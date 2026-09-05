@@ -188,6 +188,11 @@
   @keyframes popCheck{0%{transform:scale(0)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
   .photo-slot.captured .retake-overlay{position:absolute;inset:auto 0 0;padding:6px 8px;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);color:#fff;font-size:11px;font-weight:600;text-align:center;opacity:0;transition:opacity var(--t-fast)}
   .photo-slot.captured:hover .retake-overlay{opacity:1}
+  /* Corner "upload from gallery" button — small fallback when camera doesn't work */
+  .slot-upload-btn{position:absolute;top:6px;right:6px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.95);border:1px solid var(--line);font-size:15px;display:grid;place-items:center;cursor:pointer;z-index:3;color:var(--ink-2);box-shadow:0 2px 6px rgba(0,0,0,0.08);padding:0;line-height:1}
+  .slot-upload-btn:hover{background:#fff}
+  .slot-upload-btn:active{transform:scale(0.94)}
+  .photo-slot.captured .slot-upload-btn,.photo-slot.hidden-slot .slot-upload-btn{display:none}
   /* Container slot — persistent label strip always visible at bottom of photo.
      v2: 15px (was 27px) — 11 tiles on a 3-col grid leave ~110px per tile,
      and the confirmed labels are longer than the original six. */
@@ -1016,7 +1021,9 @@
 </div>
 
 <!-- Hidden file inputs for camera capture (one per slot) -->
-<input type="file" id="fileInput" accept="image/*" class="photo-input">
+<!-- Two hidden inputs: main slot tap uses camera-direct; upload icon uses gallery/chooser -->
+<input type="file" id="fileInputCamera"  accept="image/*" capture="environment" class="photo-input">
+<input type="file" id="fileInputGallery" accept="image/*" class="photo-input">
 
 <script>
   // ============================================================
@@ -1475,11 +1482,13 @@
       const slot = document.createElement('div');
       slot.className = 'photo-slot' + (lab.req ? '' : ' optional');
       slot.id = 'p12slot' + (i+1);
-      slot.onclick = () => triggerCapture12(i+1);
       slot.innerHTML =
         '<div class="slot-num">' + String(i+1).padStart(2,'0') + (lab.req?' <span class="req-star">*</span>':' OPT') + '</div>' +
         '<div class="slot-cam">📷</div>' +
-        '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>';
+        '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>' +
+        '<button class="slot-upload-btn" type="button" title="Upload from gallery">📁</button>';
+      slot.onclick = () => triggerCapture12(i+1, 'camera');
+      slot.querySelector('.slot-upload-btn').onclick = (e) => { e.stopPropagation(); triggerCapture12(i+1, 'gallery'); };
       grid.appendChild(slot);
     });
     updatePhotoProgress12();
@@ -1512,40 +1521,55 @@
     document.getElementById('step12PhotoProgress').textContent = done + ' / ' + req.length + ' required';
   }
 
-  const fileInputEl = document.getElementById('fileInput');
+  const fileInputCameraEl  = document.getElementById('fileInputCamera');
+  const fileInputGalleryEl = document.getElementById('fileInputGallery');
   let pendingFileTarget = null;
-  function triggerCapture12(num){
+  // mode: 'camera' (default) uses capture=environment; 'gallery' opens the OS chooser
+  function _openCapture(mode){
+    const input = mode === 'gallery' ? fileInputGalleryEl : fileInputCameraEl;
+    input.value = '';
+    input.click();
+  }
+  function triggerCapture12(num, mode){
     if (state.photos12[num]) { openPreview(state.photos12[num], 'PHOTO ' + num); return; }
     pendingFileTarget = { kind:'step12', num: num };
-    fileInputEl.value = '';
-    fileInputEl.click();
+    _openCapture(mode);
   }
-  function triggerCaptureLine(idx){
+  function triggerCaptureLine(idx, mode){
     if (state.linePhotos[idx]) { openPreview(state.linePhotos[idx], 'LINE PHOTO ' + (idx+1)); return; }
     pendingFileTarget = { kind:'line', idx: idx };
-    fileInputEl.value = '';
-    fileInputEl.click();
+    _openCapture(mode);
   }
-  function triggerCaptureContainer(slotIdx){
+  function triggerCaptureContainer(slotIdx, mode){
     if (state.containerPhotos[slotIdx]) { openPreview(state.containerPhotos[slotIdx], CONTAINER_LABELS_EN[slotIdx].toUpperCase()); return; }
     pendingFileTarget = { kind:'container', slot: slotIdx };
-    fileInputEl.value = '';
-    fileInputEl.click();
+    _openCapture(mode);
   }
-  fileInputEl.addEventListener('change', (e) => {
+  function _handleFileChange(e){
     const f = e.target.files[0];
     if (!f) return;
     const reader = new FileReader();
+    // Step 3 line photos show whole loading rows that officers zoom into to read
+    // box codes, so they get a bigger resolution / quality budget than item and
+    // container photos, which are shot close-up.
+    const isLine = pendingFileTarget.kind === 'line';
     reader.onload = ev => {
       compressImage(ev.target.result, compressed => {
         if (pendingFileTarget.kind === 'step12') handlePhoto12Captured(pendingFileTarget.num, compressed);
         else if (pendingFileTarget.kind === 'line') handlePhotoLineCaptured(pendingFileTarget.idx, compressed);
         else if (pendingFileTarget.kind === 'container') handleContainerPhotoCaptured(pendingFileTarget.slot, compressed);
-      });
+      }, isLine ? 1600 : 1200, isLine ? 0.75 : 0.5);
     };
     reader.readAsDataURL(f);
-  });
-  function compressImage(dataUrl, cb){
+  }
+  fileInputCameraEl.addEventListener('change', _handleFileChange);
+  fileInputGalleryEl.addEventListener('change', _handleFileChange);
+  // maxPx / quality are optional. Default 1200px @ 0.5 for item and container
+  // photos; Step 3 line photos pass 1600 @ 0.75 so loading rows stay legible
+  // when an officer zooms in (see the fileInput change handler above).
+  function compressImage(dataUrl, cb, maxPx, quality){
+    const MAX     = maxPx   || 1200;
+    const QUALITY = quality || 0.5;
     const img = new Image();
     img.onerror = () => {
       // If the image fails to decode (can happen on some phones), fall back
@@ -1557,14 +1581,13 @@
       try {
         const canvas = document.createElement('canvas');
         let w = img.width, h = img.height;
-        const MAX = 1200;
         if (w > MAX || h > MAX) {
           if (w > h) { h = Math.round(h / w * MAX); w = MAX; }
           else { w = Math.round(w / h * MAX); h = MAX; }
         }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL('image/jpeg', 0.5);
+        const compressed = canvas.toDataURL('image/jpeg', QUALITY);
         // Sanity check: if canvas returned empty/broken data, use original
         cb((compressed && compressed.length > 100) ? compressed : dataUrl);
       } catch(e) {
@@ -1597,8 +1620,10 @@
     slot.innerHTML =
       '<div class="slot-num">' + String(num).padStart(2,'0') + (lab.req?' <span class="req-star">*</span>':' OPT') + '</div>' +
       '<div class="slot-cam">📷</div>' +
-      '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>';
-    slot.onclick = () => triggerCapture12(num);
+      '<div class="slot-label"><span class="th">'+lab.th+'</span><span class="en">'+lab.en+'</span></div>' +
+      '<button class="slot-upload-btn" type="button" title="Upload from gallery">📁</button>';
+    slot.onclick = () => triggerCapture12(num, 'camera');
+    slot.querySelector('.slot-upload-btn').onclick = (e) => { e.stopPropagation(); triggerCapture12(num, 'gallery'); };
     updatePhotoProgress12();
   }
 
@@ -1806,11 +1831,13 @@
       const slot = document.createElement('div');
       slot.className = 'photo-slot' + (i > 0 ? ' optional' : '');
       slot.id = 'p3slot' + i;
-      slot.onclick = () => triggerCaptureLine(i);
       slot.innerHTML =
         '<div class="slot-num">' + (i===0?'01 <span class="req-star">*</span>':('0'+(i+1)+' OPT')) + '</div>' +
         '<div class="slot-cam">📷</div>' +
-        '<div class="slot-label">' + (i===0?'<span class="th">บังคับ</span><span class="en">Required</span>':'<span class="th">ไม่บังคับ</span><span class="en">Optional</span>') + '</div>';
+        '<div class="slot-label">' + (i===0?'<span class="th">บังคับ</span><span class="en">Required</span>':'<span class="th">ไม่บังคับ</span><span class="en">Optional</span>') + '</div>' +
+        '<button class="slot-upload-btn" type="button" title="Upload from gallery">📁</button>';
+      slot.onclick = () => triggerCaptureLine(i, 'camera');
+      slot.querySelector('.slot-upload-btn').onclick = (e) => { e.stopPropagation(); triggerCaptureLine(i, 'gallery'); };
       grid.appendChild(slot);
     }
   }
@@ -2058,8 +2085,12 @@
           exampleHtml +
           '<div class="slot-num">' + (pos < 9 ? '0' : '') + (pos+1) + ' <span class="req-star">*</span></div>' +
           '<div class="slot-cam">📷</div>' +
-          '<div class="slot-label"><span class="th">' + CONTAINER_LABELS_TH[i] + '</span><span class="en">' + CONTAINER_LABELS_EN[i] + '</span></div>';
-        (function(idx){ slot.onclick = () => triggerCaptureContainer(idx); })(i);
+          '<div class="slot-label"><span class="th">' + CONTAINER_LABELS_TH[i] + '</span><span class="en">' + CONTAINER_LABELS_EN[i] + '</span></div>' +
+          '<button class="slot-upload-btn" type="button" title="Upload from gallery">📁</button>';
+        (function(idx){
+          slot.onclick = () => triggerCaptureContainer(idx, 'camera');
+          slot.querySelector('.slot-upload-btn').onclick = (e) => { e.stopPropagation(); triggerCaptureContainer(idx, 'gallery'); };
+        })(i);
       }
       grid.appendChild(slot);
     }
