@@ -193,6 +193,9 @@
   .slot-upload-btn:hover{background:#fff}
   .slot-upload-btn:active{transform:scale(0.94)}
   .photo-slot.captured .slot-upload-btn,.photo-slot.hidden-slot .slot-upload-btn{display:none}
+  /* ✕ on a captured-but-unsaved photo (all steps). Top-left, so it never overlaps the ✓ tag. */
+  .slot-remove-btn{position:absolute;top:6px;left:6px;width:34px;height:34px;border-radius:50%;background:rgba(220,38,38,0.94);color:#fff;border:2px solid #fff;font-size:16px;font-weight:700;display:grid;place-items:center;cursor:pointer;z-index:4;padding:0;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,0.35)}
+  .slot-remove-btn:active{transform:scale(0.92)}
   /* Container slot — persistent label strip always visible at bottom of photo.
      v2: 15px (was 27px) — 11 tiles on a 3-col grid leave ~110px per tile,
      and the confirmed labels are longer than the original six. */
@@ -1597,6 +1600,16 @@
     };
     img.src = dataUrl;
   }
+  // ✕ on a captured-but-unsaved photo. Nothing has reached the sheet yet, so
+  // no GM password is needed — the slot simply goes back to empty (📷 / 📁).
+  // Replaces the old hidden double-tap gesture, which rarely worked on phones
+  // because the first tap opened the full-screen preview.
+  function _removeBtnHtml(){
+    return '<button class="slot-remove-btn" type="button" title="Remove photo" aria-label="Remove photo">✕</button>';
+  }
+  function _confirmRemove(){
+    return confirm(state.lang==='th' ? 'ลบรูปนี้แล้วถ่ายใหม่?' : 'Remove this photo and retake?');
+  }
   function handlePhoto12Captured(num, dataUrl){
     state.photos12[num] = dataUrl;
     const slot = document.getElementById('p12slot' + num);
@@ -1604,9 +1617,11 @@
     slot.innerHTML =
       '<img src="' + dataUrl + '" alt="">' +
       '<div class="check-tag">✓</div>' +
-      '<div class="retake-overlay">' + (state.lang==='th'?'แตะเพื่อดู':'Tap to view') + '</div>';
+      '<div class="retake-overlay">' + (state.lang==='th'?'แตะเพื่อดู':'Tap to view') + '</div>' +
+      _removeBtnHtml();
     slot.onclick = () => openPreview(dataUrl, 'PHOTO ' + num);
-    slot.ondblclick = () => retakePhoto12(num);
+    slot.ondblclick = null;
+    slot.querySelector('.slot-remove-btn').onclick = (e) => { e.stopPropagation(); if (_confirmRemove()) retakePhoto12(num); };
     updatePhotoProgress12();
   }
   function retakePhoto12(num){
@@ -1829,24 +1844,33 @@
     state.linePhotos = [null, null, null];
     for (let i = 0; i < 3; i++) {
       const slot = document.createElement('div');
-      slot.className = 'photo-slot' + (i > 0 ? ' optional' : '');
       slot.id = 'p3slot' + i;
-      slot.innerHTML =
-        '<div class="slot-num">' + (i===0?'01 <span class="req-star">*</span>':('0'+(i+1)+' OPT')) + '</div>' +
-        '<div class="slot-cam">📷</div>' +
-        '<div class="slot-label">' + (i===0?'<span class="th">บังคับ</span><span class="en">Required</span>':'<span class="th">ไม่บังคับ</span><span class="en">Optional</span>') + '</div>' +
-        '<button class="slot-upload-btn" type="button" title="Upload from gallery">📁</button>';
-      slot.onclick = () => triggerCaptureLine(i, 'camera');
-      slot.querySelector('.slot-upload-btn').onclick = (e) => { e.stopPropagation(); triggerCaptureLine(i, 'gallery'); };
+      _renderEmptyLineSlot(slot, i);
       grid.appendChild(slot);
     }
+  }
+  function _renderEmptyLineSlot(slot, i){
+    slot.className = 'photo-slot' + (i > 0 ? ' optional' : '');
+    slot.innerHTML =
+      '<div class="slot-num">' + (i===0?'01 <span class="req-star">*</span>':('0'+(i+1)+' OPT')) + '</div>' +
+      '<div class="slot-cam">📷</div>' +
+      '<div class="slot-label">' + (i===0?'<span class="th">บังคับ</span><span class="en">Required</span>':'<span class="th">ไม่บังคับ</span><span class="en">Optional</span>') + '</div>' +
+      '<button class="slot-upload-btn" type="button" title="Upload from gallery">📁</button>';
+    slot.onclick = () => triggerCaptureLine(i, 'camera');
+    slot.querySelector('.slot-upload-btn').onclick = (e) => { e.stopPropagation(); triggerCaptureLine(i, 'gallery'); };
   }
   function handlePhotoLineCaptured(idx, dataUrl){
     state.linePhotos[idx] = dataUrl;
     const slot = document.getElementById('p3slot' + idx);
     slot.classList.add('captured');
-    slot.innerHTML = '<img src="' + dataUrl + '" alt=""><div class="check-tag">✓</div>';
+    slot.innerHTML = '<img src="' + dataUrl + '" alt=""><div class="check-tag">✓</div>' + _removeBtnHtml();
     slot.onclick = () => openPreview(dataUrl, 'LINE PHOTO ' + (idx+1));
+    slot.querySelector('.slot-remove-btn').onclick = (e) => { e.stopPropagation(); if (_confirmRemove()) removePhotoLine(idx); };
+  }
+  function removePhotoLine(idx){
+    state.linePhotos[idx] = null;
+    const slot = document.getElementById('p3slot' + idx);
+    if (slot) _renderEmptyLineSlot(slot, idx);
   }
 
   function refreshStep3Lines(){
@@ -2031,13 +2055,20 @@
     const gmBtn = isSavedToServer
       ? '<button class="gm-mini cslot-gm" onclick="event.stopPropagation();showGMContainerModal(' + idx + ')" title="GM unlock">✏️</button>'
       : '';
+    // Not yet saved → plain ✕, no GM password (nothing is in the sheet yet).
+    const removeBtn = isSavedToServer
+      ? ''
+      : '<button class="slot-remove-btn" type="button" onclick="event.stopPropagation();removeContainerPhoto(' + idx + ')" title="Remove photo" aria-label="Remove photo">✕</button>';
     return '<img src="' + imgSrc + '" alt="">' +
            '<div class="check-tag">✓</div>' +
-           gmBtn +
+           gmBtn + removeBtn +
            '<div class="cslot-label"><span class="th">' + labelTH + '</span><span class="en">' + labelEN + '</span></div>';
   }
 
   function buildContainerGrid(serverPhotos){
+    // Remember the last server state so removing an unsaved photo can redraw
+    // the grid without another API round-trip.
+    state.lastServerContainerPhotos = serverPhotos.slice();
     const grid = document.getElementById('step3ContainerGrid');
     grid.innerHTML = '';
     let serverSavedCount = 0;
@@ -2110,6 +2141,17 @@
     if (saveBtn) saveBtn.disabled = localCount === 0;
   }
 
+  function removeContainerPhoto(idx){
+    if (state.containerSaving) {
+      showToast(state.lang==='th'?'⏳ กำลังบันทึก — รอสักครู่':'⏳ Saving — please wait', 'error');
+      return;
+    }
+    if (!state.containerPhotos[idx]) return;
+    if (!_confirmRemove()) return;
+    state.containerPhotos[idx] = null;
+    buildContainerGrid(state.lastServerContainerPhotos || new Array(CONTAINER_SLOT_COUNT).fill(''));
+  }
+
   function toDriveThumb(url){
     const m = url.match(/[-\w]{25,}/);
     return m ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w800' : url;
@@ -2149,12 +2191,14 @@
     }
     const btn = document.getElementById('step3SaveContainerBtn');
     btn.disabled = true;
+    state.containerSaving = true;   // blocks ✕ while uploads are in flight
     if (!state.containerSaveNonce) state.containerSaveNonce = generateNonce();
     // Sequential save — one slot at a time (LockService requirement)
     function saveNext(pos){
       if (pos >= toSave.length) {
         // All captured slots saved successfully
         state.containerSaveNonce = null;
+        state.containerSaving = false;
         toSave.forEach(function(i){ state.containerPhotos[i] = null; });
         document.getElementById('containerStatus').style.display = 'none';
         // keepCurrentGrid=true: grid keeps showing local photos while API refreshes,
@@ -2180,6 +2224,7 @@
             saveNext(pos + 1);
           } else {
             btn.disabled = false;
+            state.containerSaving = false;
             const errMsg = '❌ ' + ((result && (result.message || result.error)) || 'Save failed') + ' (รูปที่ ' + (slotIdx+1) + ')';
             showStatusMsg('containerStatus', errMsg, 'error');
             showToast(errMsg, 'error');
@@ -2187,6 +2232,7 @@
         })
         .catch(err => {
           btn.disabled = false;
+          state.containerSaving = false;
           const errMsg = '❌ ' + err.message + ' (รูปที่ ' + (slotIdx+1) + ')';
           showStatusMsg('containerStatus', errMsg, 'error');
           showToast(errMsg, 'error');
